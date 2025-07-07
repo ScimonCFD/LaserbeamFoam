@@ -91,13 +91,13 @@ boundary
 	    (5 6 7 4)
         );
     }
-    
+    /*
         internal
     {
         type internal;
         faces ();
     }
-    
+   */ 
     
 );
 
