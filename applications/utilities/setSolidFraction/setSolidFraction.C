@@ -42,6 +42,8 @@ Authors
 #include "volFields.H"
 #include <fstream>
 
+#include "fvCFD.H"
+
 using namespace Foam;
 
 int main(int argc, char *argv[])
