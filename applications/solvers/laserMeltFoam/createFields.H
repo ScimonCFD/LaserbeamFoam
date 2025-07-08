@@ -28,7 +28,7 @@ Info << "Reading field alpha\n"
 
 volScalarField alphaM(
     IOobject(
-        "alpha.material",
+        "alpha.metal",
         runTime.timeName(),
         mesh,
         IOobject::MUST_READ,
@@ -90,7 +90,7 @@ volVectorField U(
 Info << "Reading transportProperties\n"
      << endl;
 
-threePhaseMixture threePhaseProperties(U, phi, "alpha.material", "gT", "T");
+threePhaseMixture threePhaseProperties(U, phi, "alpha.metal", "gT", "T");
 
 volScalarField rhoM(
     IOobject(

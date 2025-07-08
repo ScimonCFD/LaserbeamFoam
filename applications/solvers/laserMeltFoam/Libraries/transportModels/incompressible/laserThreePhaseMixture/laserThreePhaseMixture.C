@@ -126,7 +126,7 @@ namespace Foam
   {
     return tmp<volScalarField>(
         new volScalarField(
-            "alpha.material",
+            "alpha.metal",
             alphaM_));
   }
 

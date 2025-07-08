@@ -1,6 +1,7 @@
 {
   "files.associations": {
     "*html": "html",
-    "laserMeltFoam.C": "cpp"
+    "laserMeltFoam.C": "cpp",
+    "laserThreePhaseMixture.C": "cpp"
   }
 }

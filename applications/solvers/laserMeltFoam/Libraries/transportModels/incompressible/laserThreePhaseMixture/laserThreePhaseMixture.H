@@ -97,7 +97,7 @@ public:
         ( 
             const volVectorField& U,
             const surfaceScalarField& phi,
-            const word& alphaMName = "alpha.material",
+            const word& alphaMName = "alpha.metal",
             const word& gTName = "gT",
             const word& TName = "T"
         );
