@@ -26,10 +26,14 @@ const labelList& topWallFaceCells = topWall.faceCells(); // TODO this might not 
 // face on the top patch
 PtrList< DynamicList<label> > cellColumns(topWall.size());
 
+
 // Approximate size for dynamic list intialisation
 const label approxSize = 2*mesh.nCells()/topWall.size();
 
 label totalCells=0;
+
+
+if(!ray_tracing_on){
 
 // Populate each column
 forAll(cellColumns, colI)
@@ -144,3 +148,4 @@ forAll(curCol,colI)
 {
     Info<<"Cell ID: "<<curCol[colI]<<endl;
 }*/
+}
