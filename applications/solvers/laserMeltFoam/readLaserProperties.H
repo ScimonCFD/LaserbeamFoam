@@ -1,12 +1,12 @@
-IOdictionary laserProperties(
+IOdictionary LaserProperties(
     IOobject(
-        "laserProperties",
+        "LaserProperties",
         mesh.time().constant(),
         mesh,
         IOobject::MUST_READ,
         IOobject::NO_WRITE));
 
-const Switch ray_tracing_on = laserProperties.lookupOrDefault<Switch>("ray_tracing_on", false);
+const Switch ray_tracing_on = LaserProperties.lookupOrDefault<Switch>("ray_tracing_on", false);
 
 if(ray_tracing_on==true){
   Info << "\nRay-tracing: ON" <<endl;
@@ -17,12 +17,12 @@ if(ray_tracing_on==true){
   Info << "Using default laser model\n" <<endl;
 }
 
-interpolationTable<scalar> laserPowerSeries(laserProperties.subDict("timeVsLaserPower"));
-interpolationTable<vector> laserPositionSeries(laserProperties.subDict("timeVsLaserPosition"));
+interpolationTable<scalar> laserPowerSeries(LaserProperties.subDict("timeVsLaserPower"));
+interpolationTable<vector> laserPositionSeries(LaserProperties.subDict("timeVsLaserPosition"));
 
-const scalar kappaM(readScalar(laserProperties.lookup("kappaM"))); // Absorptivity
-const scalar emL(readScalar(laserProperties.lookup("emL")));
-const scalar emS(readScalar(laserProperties.lookup("emS")));
+const scalar kappaM(readScalar(LaserProperties.lookup("kappaM"))); // Absorptivity
+const scalar emL(readScalar(LaserProperties.lookup("emL")));
+const scalar emS(readScalar(LaserProperties.lookup("emS")));
 
 volScalarField em(
     IOobject(
@@ -34,11 +34,11 @@ volScalarField em(
     mesh,
     dimensionedScalar("0", dimensionSet(0, 0, 0, 0, 0, 0, 0), 0.0));
 
-// const scalar eps(readScalar(laserProperties.lookup("eps"))); //Emissivity
+// const scalar eps(readScalar(LaserProperties.lookup("eps"))); //Emissivity
 
-word laserPatchName(word(laserProperties.lookup("laserPatchName")));
+word laserPatchName(word(LaserProperties.lookup("laserPatchName")));
 
-const dimensionedScalar r0("laserRadius",  dimensionSet(0, 1, 0, 0, 0, 0, 0) ,laserProperties.lookup("laserRadius")); // Laser radius
+const dimensionedScalar r0("laserRadius",  dimensionSet(0, 1, 0, 0, 0, 0, 0) ,LaserProperties.lookup("laserRadius")); // Laser radius
 dimensionedScalar t("t", dimensionSet(0, 0, 1, 0, 0, 0, 0), 0.0);
 dimensionedScalar Power("Power", dimensionSet(1, 2, -3, 0, 0, 0, 0), 0.0);
 dimensionedVector laserPos("laserPos", dimensionSet(0, 1, 0, 0, 0, 0, 0), vector(0.0, 0.0, 0.0));
