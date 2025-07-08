@@ -41,7 +41,6 @@ Authors
 #include "cellSet.H"
 #include "volFields.H"
 #include <fstream>
-
 #include "fvCFD.H"
 
 using namespace Foam;
