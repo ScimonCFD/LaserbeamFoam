@@ -83,6 +83,16 @@ solvers
     }
 }
 
+MELTING
+{
+    minTempCorrector 1;
+    maxTempCorrector 20;
+    epsilonTolerance 1e-6;
+    epsilonRelaxation 0.9;
+    
+    damperSwitch true;//false;//true;
+}
+
 PIMPLE
 {
     nCorrectors     3;

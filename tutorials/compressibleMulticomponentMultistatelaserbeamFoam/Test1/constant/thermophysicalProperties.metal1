@@ -29,6 +29,8 @@ thermoType
 TSolidus	1800.0;
 TLiquidus	1825.0;
 LatentHeat	2.7e5;
+elec_conductivity	1.0e6;
+magnetic_permeability	1.256e-6;
 
 mixture
 {

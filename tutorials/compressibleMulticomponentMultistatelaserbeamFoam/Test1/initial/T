@@ -17,32 +17,32 @@ FoamFile
 
 dimensions      [0 0 0 1 0 0 0];
 
-internalField   uniform 999;
+internalField   uniform 950;
 
 boundaryField
 {
     top
     {
         type            fixedValue;
-        value           uniform 950;
+        value           uniform 900;
     }
     
     bottom
     {
         type            fixedValue;
-        value           uniform 950;
+        value           uniform 900;
     }
     
     right
     {
         type            fixedValue;
-        value           uniform 950;
+        value           uniform 900;
     }
 
     left
     {
         type            fixedValue;
-        value           uniform 950;
+        value           uniform 900;
     }
     
     front

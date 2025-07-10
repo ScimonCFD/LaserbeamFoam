@@ -41,10 +41,14 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
+#include "dynamicFvMesh.H"
 #include "multiphaseMixtureThermo.H"
 #include "turbulentFluidThermoModel.H"
 #include "pimpleControl.H"
+#include "fvOptions.H"
+#include "CorrectPhi.H"
 
+#include "laserHeatSource.H"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 int main(int argc, char *argv[])
@@ -60,25 +64,44 @@ int main(int argc, char *argv[])
     #include "addCheckCaseOptions.H"
     #include "setRootCaseLists.H"
     #include "createTime.H"
-    #include "createMesh.H"
-    #include "createControl.H"
-    #include "createTimeControls.H"
+
+    #include "createDynamicFvMesh.H"
+
+    // #include "createMesh.H"
+    // #include "createControl.H"
+    // #include "createTimeControls.H"
+
+    #include "initContinuityErrs.H"//new
+    #include "createDyMControls.H"//new
+
     #include "createFields.H"
-    #include "CourantNo.H"
-    #include "setInitialDeltaT.H"
+
+    #include "initCorrectPhi.H"
+    #include "createUfIfPresent.H"
+
+
 
     volScalarField& p = mixture.p();
     volScalarField& T = mixture.T();
 
     turbulence->validate();
 
+    #include "Update.H"
+
+
+    #include "CourantNo.H"
+    #include "setInitialDeltaT.H"
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     Info<< "\nStarting time loop\n" << endl;
 
     while (runTime.run())
     {
-        #include "readTimeControls.H"
+
+        #include "readMeltingControls.H"
+        #include "readDyMControls.H"
+
+        // #include "readTimeControls.H"
         #include "CourantNo.H"
         #include "alphaCourantNo.H"
         #include "setDeltaT.H"
@@ -91,15 +114,62 @@ int main(int argc, char *argv[])
         while (pimple.loop())
         {
 
+            if (pimple.firstIter() || moveMeshOuterCorrectors)
+            {
+                scalar timeBeforeMeshUpdate = runTime.elapsedCpuTime();
 
-            #include "Update.H"
-            
+                mesh.update();
+
+                if (mesh.changing())
+                {
+                    Info<< "Execution time for mesh.update() = "
+                        << runTime.elapsedCpuTime() - timeBeforeMeshUpdate
+                        << " s" << endl;
+
+                    gh = (g & mesh.C()) - ghRef;
+                    ghf = (g & mesh.Cf()) - ghRef;
+
+                    MRF.update();
+
+                    if (correctPhi)
+                    {
+                        // Calculate absolute flux
+                        // from the mapped surface velocity
+                        phi = mesh.Sf() & Uf();
+
+                        #include "correctPhi.H"
+
+                        // Make the flux relative to the mesh motion
+                        fvc::makeRelative(phi, U);
+
+                        mixture.correct();
+                    }
+
+                    if (checkMeshCourantNo)
+                    {
+                        #include "meshCourantNo.H"
+                    }
+                }
+            }
+
+
             vDot = mixture.solve(&mass_dot);
             vDot.correctBoundaryConditions();
+
+            mass_dot.correctBoundaryConditions();
 
             solve(fvm::ddt(rho) + fvc::div(mixture.rhoPhi()));
 
             // rho=mixture.rho();
+
+            #include "Update.H"
+
+            // Update the laser deposition field
+            laser.updateDeposition
+            (
+                condensate, n_filtered, electrical_resistivity
+            );
+
 
             #include "UEqn.H"
             #include "TEqn.H"

@@ -31,6 +31,8 @@ TSolidus	5.0;
 TLiquidus	10.0;
 LatentHeat	1.0;
 
+elec_conductivity	1.0;
+magnetic_permeability	1.256e-6;
 
 mixture
 {

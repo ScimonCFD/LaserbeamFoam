@@ -15,7 +15,6 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-//application			laserSteelTriFoam;
 application		ultraLaserbeamFoam;
 
 startFrom       latestTime;
@@ -50,7 +49,7 @@ adjustTimeStep  yes;
 
 maxCo           0.1;
 maxAlphaCo      0.1;
-maxDeltaT       5e-6;
+maxDeltaT       0.5e-6;
 
 
 
