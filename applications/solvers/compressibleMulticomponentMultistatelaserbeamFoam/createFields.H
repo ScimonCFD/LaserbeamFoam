@@ -1,3 +1,6 @@
+dimensionedScalar deltaN=1e-8/pow(average(mesh.V()), 1.0/3.0);
+
+
 Info<< "Reading field p_rgh\n" << endl;
 volScalarField p_rgh
 (
@@ -126,19 +129,52 @@ autoPtr<compressible::turbulenceModel> turbulence
         dimensionedScalar("condensate",dimless,0.0)
     );
 
-    volScalarField refine_test //kg per m^3 per s
+
+    volScalarField metalaverage
+(
+    IOobject
     (
-        IOobject
-        (
-            "refine_test",
-            runTime.timeName(),
-            mesh,
-            IOobject::READ_IF_PRESENT,
-            IOobject::AUTO_WRITE
-        ),
+        "metalaverage",
+        runTime.timeName(),
         mesh,
-       dimensionedScalar("refine_test",dimensionSet(0,0,0,0,0),0.0)
-    );
+        IOobject::READ_IF_PRESENT,
+        IOobject::NO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("metalaverage",dimensionSet(0,0,0,0,0),0.0)
+);
+metalaverage = fvc::average(condensate);
+
+
+    // volScalarField refine_test //kg per m^3 per s
+    // (
+    //     IOobject
+    //     (
+    //         "refine_test",
+    //         runTime.timeName(),
+    //         mesh,
+    //         IOobject::READ_IF_PRESENT,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     mesh,
+    //    dimensionedScalar("refine_test",dimensionSet(0,0,0,0,0),0.0)
+    // );
+
+volVectorField n_filtered
+(
+    IOobject
+    (
+        "n_filtered",
+        runTime.timeName(),
+        mesh,
+        IOobject::READ_IF_PRESENT,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedVector("n_filtered",dimensionSet(0, 0, 0, 0, 0),vector::zero)
+);
+
+
 
 
 
@@ -190,42 +226,287 @@ volScalarField TSolidus
     );
 
 
-
-
-TSolidus*=0.0;
-TLiquidus*=0.0;
-LatentHeat*=0.0;
-
-forAllConstIter(PtrDictionary<phaseModel>, mixture.phases(), iter)
-    {
-        const phaseModel& phase1 = iter();
-        const volScalarField& alpha1 = phase1;
-
-        // mesh.setFluxRequired(phase1.name());
-
-        IOdictionary phasedictionary
+        volScalarField electrical_resistivity//electrical resistivity of condensate only
+    (
+        IOobject
         (
-            IOobject
-            (
-            "thermophysicalProperties." + phase1.name(),
-            mesh.time().constant(),
+            "electrical_resistivity",
+            runTime.timeName(),
             mesh,
-            IOobject::MUST_READ_IF_MODIFIED
-            )
-        );
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("electrical_resistivity",dimensionSet(1,3,-3,0,0),0.0)
+    );
+
+
+
+
+
+
+
+
+
+// //MAGNETIC STUFF
+// volVectorField H
+// (
+//     IOobject
+//     (
+//         "H",
+//         runTime.timeName(),
+//         mesh,
+//         IOobject::MUST_READ,
+//         IOobject::AUTO_WRITE
+//     ),
+//     mesh//,
+// );
+
+// H.correctBoundaryConditions();
+
+// volScalarField pH
+// (
+//     IOobject
+//     (
+//         "pH",
+//         runTime.timeName(),
+//         mesh,
+//         IOobject::MUST_READ,
+//         IOobject::AUTO_WRITE
+//     ),
+//     mesh
+// );
+
+// pH.correctBoundaryConditions();
+
+
+
+//      volVectorField B
+//     (
+//         IOobject
+//         (
+//             "B",
+//             runTime.timeName(),
+//             mesh,
+//             IOobject::READ_IF_PRESENT,
+//             IOobject::AUTO_WRITE
+//         ),
+//         mesh,
+//        dimensionedVector("B",dimensionSet(1,0,-2,0,0),vector::zero)
+//     );
+
+//     B.write();
+
+
+// volVectorField J
+// (
+//     IOobject
+//     (
+//         "J",
+//         runTime.timeName(),
+//         mesh,
+//         IOobject::READ_IF_PRESENT,
+//         IOobject::AUTO_WRITE
+//     ),
+//         mesh,
+//          dimensionedVector("J", dimensionSet(0, -2, 0, 0, 0), vector::zero)
+//         // dimensionedScalar("TRHS",dimensionSet(0, 2, -3, 0, 0),scalar(0.0))
+// );
+
+//     // J=(1.0/magperm)*fvc::curl(B);
+//     // J.correctBoundaryConditions();
+
+
+
+
+//             volScalarField Joulesource
+//     (
+//         IOobject
+//         (
+//             "Joulesource",
+//             runTime.timeName(),
+//             mesh,
+//             IOobject::NO_READ,
+//             IOobject::AUTO_WRITE
+//         ),
+//         mesh,
+//         dimensionedScalar("Joulesource",dimensionSet(1, -1, -3, 0, 0),0.0)
+//     );
+
+
+// volVectorField JcrossB
+// (
+//     IOobject
+//     (
+//         "JcrossB",
+//         runTime.timeName(),
+//         mesh,
+//         IOobject::READ_IF_PRESENT,
+//         IOobject::AUTO_WRITE
+//     ),
+//         mesh,
+//          dimensionedVector("JcrossB", dimensionSet(1, -2, -2, 0, 0), vector::zero),
+// 	    zeroGradientFvPatchVectorField::typeName
+//         // dimensionedScalar("TRHS",dimensionSet(0, 2, -3, 0, 0),scalar(0.0))
+// );
+
+
+
+//         volScalarField divB
+//     (
+//         IOobject
+//         (
+//             "divB",
+//             runTime.timeName(),
+//             mesh,
+//             IOobject::NO_READ,
+//             IOobject::AUTO_WRITE
+//         ),
+//         mesh,
+//         // dimensionedScalar("divB",dimensionSet(0,-2,0,0,0),0.0)
+//         dimensionedScalar("divB",dimensionSet(1,-1,-2,0,0),0.0)
+//     );
+
+// //     volVectorField divoneoversigmaTgradH
+// // (
+// //     IOobject
+// //     (
+// //         "divoneoversigmaTgradH",
+// //         runTime.timeName(),
+// //         mesh,
+// //         IOobject::READ_IF_PRESENT,
+// //         IOobject::AUTO_WRITE
+// //     ),
+// //     mesh,
+// //     dimensionedVector("divoneoversigmaTgradH",dimensionSet(1, 0, -3, 0, 0),vector::zero)//,
+// // 	    // zeroGradientFvPatchVectorField::typeName
+// // );
+
+// #include "createPhiH.H"
+
+       volScalarField eleccond
+    (
+        IOobject
+        (
+            "eleccond",
+            runTime.timeName(),
+            mesh,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("eleccond",dimensionSet(-1, -3, 3, 0, 0),0.0),
+                zeroGradientFvPatchScalarField::typeName
+    );
+
+            volScalarField magperm
+    (
+        IOobject
+        (
+            "magperm",
+            runTime.timeName(),
+            mesh,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("magperm",dimensionSet(1, 1, -2, 0, 0),0.0),
+                zeroGradientFvPatchScalarField::typeName
+    );
+
+//             volScalarField oneoversigma
+//     (
+//         IOobject
+//         (
+//             "oneoversigma",
+//             runTime.timeName(),
+//             mesh,
+//             IOobject::READ_IF_PRESENT,
+//             IOobject::AUTO_WRITE
+//         ),
+//         mesh,
+//         dimensionedScalar("oneoversigma",dimensionSet(1, 3, -3, 0, 0),0.0),
+//                 zeroGradientFvPatchScalarField::typeName
+//     );
+
+
+
+//         volTensorField gradH
+// (
+//     IOobject
+//     (
+//         "gradH",
+//         runTime.timeName(),
+//         mesh,
+//         IOobject::READ_IF_PRESENT,
+//         IOobject::AUTO_WRITE
+//     ),
+//         mesh,
+//          dimensionedTensor("gradH",dimensionSet(0, -2, 0, 0, 0),tensor::zero),
+//                 zeroGradientFvPatchTensorField::typeName
+// );
+
+// //MAGNETIC STUFF
+
+
+
+const dimensionedScalar DarcyConstantlarge
+(
+    "DarcyConstantlarge", dimensionSet(1,-3,-1,0,0), 1.0e6
+);
+
+const dimensionedScalar DarcyConstantsmall
+(
+    "DarcyConstantsmall", dimless, 1.0e-12
+);
+
+
+
+
+
+
+// Create laser heat source
+laserHeatSource laser(mesh);
+
+
+#include "Update.H"
+
+
+
+// TSolidus*=0.0;
+// TLiquidus*=0.0;
+// LatentHeat*=0.0;
+
+// forAllConstIter(PtrDictionary<phaseModel>, mixture.phases(), iter)
+//     {
+//         const phaseModel& phase1 = iter();
+//         const volScalarField& alpha1 = phase1;
+
+//         // mesh.setFluxRequired(phase1.name());
+
+//         IOdictionary phasedictionary
+//         (
+//             IOobject
+//             (
+//             "thermophysicalProperties." + phase1.name(),
+//             mesh.time().constant(),
+//             mesh,
+//             IOobject::MUST_READ_IF_MODIFIED
+//             )
+//         );
         
-        // dimensionedScalar molweight("molweight",dimless,specieDict.lookup("molWeight"));
-        // phasedictionary.lookup("TSolidus");
-        // dimensionedScalar phaseTSolidus("phaseTSolidus",dimensionSet(0, 0, 0, 1, 0),phasedictionary.lookup("TSolidus"));
-        dimensionedScalar phaseTSolidus("phaseTSolidus",dimensionSet(0, 0, 0, 1, 0),readScalar(phasedictionary.lookup("TSolidus")));
-        dimensionedScalar phaseTLiquidus("phaseTLiquidus",dimensionSet(0, 0, 0, 1, 0),readScalar(phasedictionary.lookup("TLiquidus")));
-        dimensionedScalar phaseLH("phaseLH",dimensionSet(0, 2, -2, 0, 0),readScalar(phasedictionary.lookup("LatentHeat")));
+//         // dimensionedScalar molweight("molweight",dimless,specieDict.lookup("molWeight"));
+//         // phasedictionary.lookup("TSolidus");
+//         // dimensionedScalar phaseTSolidus("phaseTSolidus",dimensionSet(0, 0, 0, 1, 0),phasedictionary.lookup("TSolidus"));
+//         dimensionedScalar phaseTSolidus("phaseTSolidus",dimensionSet(0, 0, 0, 1, 0),readScalar(phasedictionary.lookup("TSolidus")));
+//         dimensionedScalar phaseTLiquidus("phaseTLiquidus",dimensionSet(0, 0, 0, 1, 0),readScalar(phasedictionary.lookup("TLiquidus")));
+//         dimensionedScalar phaseLH("phaseLH",dimensionSet(0, 2, -2, 0, 0),readScalar(phasedictionary.lookup("LatentHeat")));
 
-        TSolidus+=alpha1*phaseTSolidus;
-        TLiquidus+=alpha1*phaseTLiquidus;
-        LatentHeat+=alpha1*phaseLH;
+//         TSolidus+=alpha1*phaseTSolidus;
+//         TLiquidus+=alpha1*phaseTLiquidus;
+//         LatentHeat+=alpha1*phaseLH;
 
-    }
+//     }
 
 
 
@@ -341,5 +622,5 @@ volScalarField Tcorr
 );
 
 
-
+#include "createMRF.H"
 #include "createK.H"
