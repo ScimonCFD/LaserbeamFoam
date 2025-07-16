@@ -20,6 +20,10 @@ internalField   uniform 0;
 
 boundaryField
 {
+
+//    #includeEtc "caseDicts/setConstraintTypes"
+    
+    
 	frontAndBack{
         type            zeroGradient;
 	}
@@ -35,7 +39,7 @@ boundaryField
         inletValue      uniform 0;
         value           uniform 0;
     }
-rightWall
+    rightWall
     {
         type            zeroGradient;
     }

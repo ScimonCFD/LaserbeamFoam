@@ -1,0 +1,55 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  10
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      phaseProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+phases          (metal gas);
+// phase properties for the metal and gas phases
+metal
+{
+    transportModel      Newtonian;
+    nu                  5e-07;
+    rho                 8000;
+    Tsolidus            1658;
+    Tliquidus           1723;
+    LatentHeat          2.7e5;
+    beta                5.0e-6;
+    poly_kappa          (10 0.015 0 0 0 0 0 0);
+    poly_cp             (520 0.075 0 0 0 0 0 0);
+    elec_resistivity    1.0e-6; 
+}
+
+gas
+{
+    transportModel      Newtonian;
+    nu                  1.48e-05;
+    rho                 1;
+    Tsolidus            1.0;
+    Tliquidus           10.0;
+    LatentHeat          1;
+    beta                4.0e-5;
+    poly_kappa          (0.04 0.0 0 0 0 0 0 0);
+    poly_cp             (520 0.0 0 0 0 0 0 0);
+}
+
+// phase change properties
+sigma                   0.07;
+Marangoni_Constant	    -0.5e-4;
+p0		                100000.0;
+Tvap                    3068.0;
+Mm                      5.58e-2;
+LatentHeatVap           7.45e6;
+
+
+// ************************************************************************* //
