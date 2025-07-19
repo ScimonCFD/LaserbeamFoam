@@ -31,7 +31,7 @@ timeVsLaserPower
 // Laser angle (normalised in the code)
 V_incident (0 1 0);
 
-laserRadius 25e-6;
+laserRadius 10e-6;
 
 N_sub_divisions	1;
 
