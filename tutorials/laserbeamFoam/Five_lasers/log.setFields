@@ -1,0 +1,39 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2506                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+Build  : _615aae61-20250627 OPENFOAM=2506 version=2506
+Arch   : "LSB;label=32;scalar=64"
+Exec   : setFields
+Date   : Jul 16 2025
+Time   : 09:41:05
+Host   : ifsw-cfdsrv
+PID    : 530520
+I/O    : uncollated
+Case   : /home/piotxyz/dev/cfd/LaserbeamFoam/tutorials/laserbeamFoam/Five_lasers
+nProcs : 1
+trapFpe: Floating point exception trapping enabled (FOAM_SIGFPE).
+fileModificationChecking : Monitoring run-time modified files using timeStampMaster (fileModificationSkew 5, maxFileModificationPolls 20)
+allowSystemOperations : Allowing user-supplied system call operations
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Create time
+
+Create mesh for time = 0
+
+Reading setFieldsDict
+
+Setting volume field default values
+    - set internal values of volScalarField: alpha.metal = 0
+
+Setting field region values
+
+    Adding cells with centre within boxes 1((-0.0004 0.0001001 -0.5) (0.0004 0.0005001 0.5))
+    Selected 172800/256000 cells
+    - set internal values of volScalarField: alpha.metal = 1
+
+End
+
