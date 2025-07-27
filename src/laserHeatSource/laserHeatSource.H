@@ -44,6 +44,10 @@ SourceFiles
 #include "dictionary.H"
 #include "interpolationTable.H"
 
+// #include <vector>
+// #include "globalIndex.H"
+#include "OFstream.H"
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -51,6 +55,117 @@ namespace Foam
 /*---------------------------------------------------------------------------*\
                         Class laserHeatSource Declaration
 \*---------------------------------------------------------------------------*/
+
+
+class CompactRay
+{
+    private:
+
+    public:
+
+    point origin_;
+    vector direction_;
+    scalar power_;
+    scalar remainingPower_;
+    label currentCell_;
+    label bounceCount_;
+    label global_Ray_number_;
+    bool active_;
+    DynamicList<point> path_;
+    
+    CompactRay()
+    : power_(0), remainingPower_(0), currentCell_(-1), 
+      bounceCount_(0),global_Ray_number_(-1), active_(false) {}
+      
+    CompactRay(const point& origin, const vector& dir, scalar power)
+    : origin_(origin), direction_(dir), power_(power), 
+      remainingPower_(power), currentCell_(-1), bounceCount_(0),global_Ray_number_(-1), active_(true)
+    {
+        direction_ /= mag(direction_) + VSMALL;
+        path_.clear();
+    }
+
+        // Destructor
+
+        virtual ~CompactRay()
+        {}
+
+
+    void reset(const point& origin, const vector& dir, scalar power)
+    {
+        origin_ = origin;
+        direction_ = dir / (mag(dir) + VSMALL);
+        power_ = power;
+        remainingPower_ = power;
+        currentCell_ = -1;
+        bounceCount_ = 0;
+        global_Ray_number_ = -1;
+        active_ = true;
+    }
+
+        bool operator==(const CompactRay& other) const
+    {
+        return 
+            origin_ == other.origin_ && 
+            direction_ == other.direction_ && 
+            power_ == other.power_ &&
+            global_Ray_number_ == other.global_Ray_number_;
+    }
+
+    bool operator!=(const CompactRay& other) const
+    {
+        return !(*this == other);
+    }
+
+    // Also useful for sorting/searching
+    bool operator<(const CompactRay& other) const
+    {
+        if (origin_ != other.origin_) return origin_ < other.origin_;
+        if (direction_ != other.direction_) return direction_ < other.direction_;
+        return power_ < other.power_;
+        // Adjust based on your data members and desired ordering
+    }
+
+        friend Ostream& operator<<(Ostream& os, const CompactRay& ray)
+    {
+        return os << ray.origin_ << ray.direction_ << ray.power_;
+    }
+    
+    friend Istream& operator>>(Istream& is, CompactRay& ray)
+    {
+        return is >> ray.origin_ >> ray.direction_ >> ray.power_;
+    }
+
+};
+
+
+struct combineRayLists
+{
+    void operator()(DynamicList<CompactRay>& x, const DynamicList<CompactRay>& y) const
+    {
+        x.append(y);
+    }
+};
+
+
+struct combineLists
+{
+    void operator()(DynamicList<point>& x, const DynamicList<point>& y) const
+    {
+        x.append(y);
+    }
+};
+
+struct combineRayPaths
+{
+    void operator()(DynamicList<DynamicList<point>>& x, const DynamicList<DynamicList<point>>& y) const
+    {
+        forAll(y, i)
+        {
+            x.append(y[i]);
+        }
+    }
+};
 
 class laserHeatSource
 :
@@ -85,6 +200,10 @@ class laserHeatSource
         //  smear out the particle interface un-physically
         const Switch powderSim_;
 
+        //- new laser discretisation flag
+        //  Tell the heat source if you want to discreetise the traditional laserbeamfoam way or in radial and polar coordinates
+        const Switch Radial_Polar_HS_;
+
         //- List of the laser names
         wordList laserNames_;
 
@@ -96,6 +215,9 @@ class laserHeatSource
 
         //- List of the time vs laser power interpolation series
         PtrList<interpolationTable<scalar>> timeVsLaserPower_;
+
+        //- Global bounding box of the mesh
+        boundBox globalBB_;
 
 
     // Private Member Functions
@@ -151,6 +273,12 @@ public:
             return powderSim_;
         }
 
+        //- Const access to the HS discretisation flag
+        const Switch& Radial_Polar_HS() const
+        {
+            return Radial_Polar_HS_;
+        }
+
         //- Update the deposition field for all lasers
         //  The filtered volume frame field (alphaFiltered) and the filtered
         //  interface normal field are required to define the interface
@@ -178,14 +306,159 @@ public:
             const scalar currentLaserPower,
             const scalar laserRadius,
             const label N_sub_divisions,
+            const label nRadial_,   //added for radial polar heat source
+            const label nAngular_,   //added for radial polar heat source
             const vector& V_incident,
             const scalar wavelength,
             const scalar e_num_density,
             const scalar dep_cutoff,
             const scalar Radius_Flavour,
             const Switch useLocalSearch,
-            const label maxLocalSearch
+            const label maxLocalSearch,
+            const boundBox& globalBB  // FOR ACCESS TO BOUNDING BOX GLOBALLY
         );
+
+        //- Const access to the global bounding box
+        const boundBox& globalBB() const
+        {
+            return globalBB_;
+        }
+
+        // bool pointOnFace(const face& f, const point& p, const pointField& meshPoints);
+
+
+
+// void writeLinesToVTK(const pointField& points, const word& filename)
+// {
+//     OFstream file(filename);
+    
+//     // VTK header
+//     file << "# vtk DataFile Version 3.0" << nl;
+//     file << "Line data" << nl;
+//     file << "ASCII" << nl;
+//     file << "DATASET POLYDATA" << nl;
+    
+//     // Points section
+//     file << "POINTS " << points.size() << " float" << nl;
+//     forAll(points, i)
+//     {
+//         const point& pt = points[i];
+//         file << pt.x() << " " << pt.y() << " " << pt.z() << nl;
+//     }
+    
+//     // Lines section (connects consecutive points)
+//     label nLines = points.size() - 1;
+//     file << "LINES " << nLines << " " << (nLines * 3) << nl;
+    
+//     for (label i = 0; i < nLines; i++)
+//     {
+//         file << "2 " << i << " " << (i + 1) << nl;
+//     }
+// }
+
+// void writeLinesToVTK(const DynamicList<point>& points, const fileName& filename)
+// {
+//     OFstream file(filename);
+    
+//     if (!file.good())
+//     {
+//         FatalErrorInFunction
+//             << "Cannot open file " << filename
+//             << exit(FatalError);
+//     }
+    
+//     // VTK header
+//     file << "# vtk DataFile Version 3.0" << nl;
+//     file << "Line data" << nl;
+//     file << "ASCII" << nl;
+//     file << "DATASET POLYDATA" << nl;
+    
+//     // Points section
+//     file << "POINTS " << points.size() << " float" << nl;
+//     forAll(points, i)
+//     {
+//         const point& pt = points[i];
+//         file << pt.x() << " " << pt.y() << " " << pt.z() << nl;
+//     }
+    
+//     // Lines section
+//     label nLines = points.size() - 1;
+//     file << "LINES " << nLines << " " << (nLines * 3) << nl;
+    
+//     for (label i = 0; i < nLines; i++)
+//     {
+//         file << "2 " << i << " " << (i + 1) << nl;
+//     }
+// }
+
+
+void writeMultipleRaysToVTK(
+    const DynamicList<DynamicList<point>>& rays,
+    const fileName& filename)//const fileName& filename
+{
+
+    
+    OFstream file(filename);
+    
+    if (!file.good())
+    {
+        FatalErrorInFunction
+            << "Cannot open file " << filename
+            << exit(FatalError);
+    }
+    
+    // Calculate total number of points and lines
+    label totalPoints = 0;
+    label totalLines = 0;
+    
+    forAll(rays, rayI)
+    {
+        totalPoints += rays[rayI].size();
+        if (rays[rayI].size() > 1)
+        {
+            totalLines += (rays[rayI].size() - 1); // n-1 line segments per ray
+        }
+    }
+    
+    // VTK header
+    file << "# vtk DataFile Version 3.0" << nl;
+    file << "Multiple ray data" << nl;
+    file << "ASCII" << nl;
+    file << "DATASET POLYDATA" << nl;
+    
+    // Write all points
+    file << "POINTS " << totalPoints << " float" << nl;
+    forAll(rays, rayI)
+    {
+        const DynamicList<point>& ray = rays[rayI];
+        forAll(ray, pointI)
+        {
+            const point& pt = ray[pointI];
+            file << pt.x() << " " << pt.y() << " " << pt.z() << nl;
+        }
+    }
+    
+    // Write line connectivity
+    // Each line segment is defined by 2 points
+    file << "LINES " << totalLines << " " << (totalLines * 3) << nl;
+    
+    label pointOffset = 0;
+    forAll(rays, rayI)
+    {
+        const DynamicList<point>& ray = rays[rayI];
+        
+        // Connect consecutive points within this ray only
+        for (label i = 0; i < ray.size() - 1; i++)
+        {
+            file << "2 " << (pointOffset + i) << " " << (pointOffset + i + 1) << nl;
+        }
+        
+        pointOffset += ray.size(); // Update offset for next ray
+    }
+    
+    Info << "Written VTK file with " << rays.size() << " rays: " << filename << endl;
+}
+
 
 };
 
