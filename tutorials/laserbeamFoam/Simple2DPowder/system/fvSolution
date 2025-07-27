@@ -20,6 +20,7 @@ solvers
     {
         nAlphaCorr      2;
         nAlphaSubCycles 1;
+        cAlpha          1;
 
         MULESCorr       yes;
         nLimiterIter    5;
@@ -84,8 +85,8 @@ MELTING
 {
     minTempCorrector 1;
     maxTempCorrector 150;
-    epsilonTolerance 1e-6;
-    epsilonRelaxation 0.95;
+    epsilonTolerance 1e-4;
+    epsilonRelaxation 0.5;
     
     damperSwitch true;//false;//true;
 }

@@ -39,7 +39,7 @@ boundaryField
         inletValue      uniform 0;
         value           uniform 0;
     }
-rightWall
+    rightWall
     {
         type            zeroGradient;
     }

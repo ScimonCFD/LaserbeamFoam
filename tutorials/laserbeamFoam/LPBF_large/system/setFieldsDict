@@ -22,15 +22,12 @@ defaultFieldValues
 
 regions
 (
-
-
-
     boxToCell
     {
         box (-0.85 0.001 -0.5) (0.85 0.004 0.5);
         fieldValues
         (
-    volScalarFieldValue alpha.metal 1
+            volScalarFieldValue alpha.metal 1
         );
     }
 

@@ -28,9 +28,11 @@ divSchemes
 {
     div(rhoPhi,U)  Gauss linearUpwind grad(U);
     div(phi,alpha)  Gauss interfaceCompression vanLeer 1;
+    div(phirb,alpha) Gauss linear;
     div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
     div(rhoPhi,epsilon1)	Gauss linear;//Gauss vanLeer01;
-    div((interpolate(cp)*rhoPhi),T)   Gauss upwind;
+    div(rhophicp,T)   Gauss upwind;
+    // div((interpolate(cp)*rhoPhi),T)   Gauss upwind;
 }
 
 laplacianSchemes
