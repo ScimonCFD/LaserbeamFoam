@@ -605,7 +605,7 @@ void laserHeatSource::updateDeposition
         //TO READ IN ONCE IT WORKS
         // label nRadial_ = 100;
         // label nAngular_ = 100;
-        scalar rMax = 2.0*beam_radius;
+        scalar rMax = 1.5*beam_radius;
 
         // label nRadial_ = readScalar(laserHeatSource::dict.lookup("nRadial"));
         // label nAngular_ = readScalar(dict.lookup("nAngular"));
@@ -898,7 +898,7 @@ void laserHeatSource::updateDeposition
     // Info<<"Number of rays: "<<Rays_all.size()<<endl;
     // Info<<"rayprint: "<<Rays_all[0].origin_<<endl;
     // Info<<"rayprint: "<<Rays_all[1].active_<<endl;
-DynamicList<DynamicList<point>> WriteRays;
+// DynamicList<DynamicList<point>> WriteRays;
 DynamicList<CompactRay> globalRays = Rays_all;
 
 while(globalRays.size()>0){
@@ -907,7 +907,7 @@ Info<<"Number of Rays in Domain: "<<globalRays.size()<<endl;
 
 
 //Find all points on current processor - WANT TO TRACK ALL RAYS ON PROCESSORS AND SYNC ONCE THEY ARE ALL OFF
-DynamicList<DynamicList<point>> WriteRays_current_processor;
+// DynamicList<DynamicList<point>> WriteRays_current_processor;
 DynamicList<CompactRay> Rays_current_processor;
 // DynamicList<CompactRay> WriteRayscurrentProcessor;
     forAll(globalRays, i)
@@ -924,10 +924,10 @@ DynamicList<CompactRay> Rays_current_processor;
         
 
 
-if (!globalBB.contains(globalRays[i].origin_))
+if (!globalBB.contains(globalRays[i].origin_)||(globalRays[i].power_<1e-6))
 {
     // Point definitely outside mesh
-    WriteRays.append(globalRays[i].path_);
+    // WriteRays.append(globalRays[i].path_);
     globalRays.remove();
     // return false;
 }
@@ -949,7 +949,7 @@ if (!globalBB.contains(globalRays[i].origin_))
         while(myCellId!=-1){
             // rayQ_[myCellId]+=0.5;
 
-        scalar iterator_distance = (0.5/pi.value())*yDimI[myCellId];
+        scalar iterator_distance = (0.5/pi.value())*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
         
 
         // Rays_current_processor[i].origin_+=iterator_distance*Rays_current_processor[i].direction_;
@@ -1139,7 +1139,7 @@ if (!globalBB.contains(globalRays[i].origin_))
                             );
 
             // WriteRayscurrentProcessor[i].path_.append(Rays_current_processor[i].origin_);
-            WriteRays_current_processor.append(Rays_current_processor[i].path_);
+            // WriteRays_current_processor.append(Rays_current_processor[i].path_);
             // }
             // else{}
             }
@@ -1167,14 +1167,14 @@ Rays_current_processor[i].path_.append(Rays_current_processor[i].origin_);//THIN
     //NOW WANT TO SWAP ALL LISTS OF RAYS THAT HAVE LEFT ALL PROCESSORS TO SEE IFD THEY ARE ON OTHER PROCESSORS
 
 /*DynamicList<CompactRay>*/ globalRays = Rays_current_processor;//to sync
-                                       WriteRays = WriteRays_current_processor;
+                                    //    WriteRays = WriteRays_current_processor;
 
 
 Pstream::combineGather(globalRays, combineRayLists());
 Pstream::broadcast(globalRays);//Pstream::combineScatter(globalRays);
 
-Pstream::combineGather(WriteRays, combineRayPaths());
-Pstream::broadcast(WriteRays);//Pstream::combineScatter(WriteRays);
+// Pstream::combineGather(WriteRays, combineRayPaths());
+// Pstream::broadcast(WriteRays);//Pstream::combineScatter(WriteRays);
 
 // WriteRays
 
@@ -1188,74 +1188,81 @@ Pstream::broadcast(WriteRays);//Pstream::combineScatter(WriteRays);
 // Info<<"path test"<<Rays_all[0].path_<<endl;
 
 
-if (runTime.outputTime())
-{
-    // Create a directory for the VTK files
-    fileName vtkDir;
-    if (Pstream::parRun())
-    {
-        vtkDir = runTime.path()/".."/"VTKs";
-    }
-    else
-    {
-        vtkDir = runTime.path()/"VTKs";
-    }
 
-    mkDir(vtkDir);
 
-    // // Collect all ray paths from all rays
-    DynamicList<DynamicList<point>> allRayPaths = WriteRays;
+
+
+
+
+
+// if (runTime.outputTime())
+// {
+//     // Create a directory for the VTK files
+//     fileName vtkDir;
+//     if (Pstream::parRun())
+//     {
+//         vtkDir = runTime.path()/".."/"VTKs";
+//     }
+//     else
+//     {
+//         vtkDir = runTime.path()/"VTKs";
+//     }
+
+//     mkDir(vtkDir);
+
+//     // // Collect all ray paths from all rays
+//     DynamicList<DynamicList<point>> allRayPaths = WriteRays;
     
-    // // Rays_all contains all the rays with their complete paths
-    // forAll(WriteRays, rayI)
-    // {
-    //     // Info<<" HERE"<<endl;
-    //     // Info<<" HERE"<<endl;
-    //     // Info<<" HERE"<<endl;
-    //     // Info<<" HERE"<<endl;
-    //     // Info<<"ray path size: "<<WriteRays[rayI].path_.size()<<endl;
-    //     // Info<<" HERE"<<endl;
-    //     // Info<<" HERE"<<endl;
-    //     // Info<<" HERE"<<endl;
+//     // // Rays_all contains all the rays with their complete paths
+//     // forAll(WriteRays, rayI)
+//     // {
+//     //     // Info<<" HERE"<<endl;
+//     //     // Info<<" HERE"<<endl;
+//     //     // Info<<" HERE"<<endl;
+//     //     // Info<<" HERE"<<endl;
+//     //     // Info<<"ray path size: "<<WriteRays[rayI].path_.size()<<endl;
+//     //     // Info<<" HERE"<<endl;
+//     //     // Info<<" HERE"<<endl;
+//     //     // Info<<" HERE"<<endl;
 
-    //     if (WriteRays.size() > 1)  // Only add rays that have traveled
-    //     {
-    //         allRayPaths.append(WriteRays);
-    //     }
-    // }
+//     //     if (WriteRays.size() > 1)  // Only add rays that have traveled
+//     //     {
+//     //         allRayPaths.append(WriteRays);
+//     //     }
+//     // }
 
-    // Gather paths from all processors if running in parallel
-    if (Pstream::parRun())
-    {
-        // Gather all paths to master processor
-        List<DynamicList<DynamicList<point>>> gatheredPaths(Pstream::nProcs());
-        gatheredPaths[Pstream::myProcNo()] = allRayPaths;
-        Pstream::gatherList(gatheredPaths);
+//     // Gather paths from all processors if running in parallel
+//     if (Pstream::parRun())
+//     {
+//         // Gather all paths to master processor
+//         List<DynamicList<DynamicList<point>>> gatheredPaths(Pstream::nProcs());
+//         gatheredPaths[Pstream::myProcNo()] = allRayPaths;
+//         Pstream::gatherList(gatheredPaths);
         
-        if (Pstream::master())
-        {
-            // Combine all paths
-            allRayPaths.clear();
-            forAll(gatheredPaths, procI)
-            {
-                const DynamicList<DynamicList<point>>& procPaths = gatheredPaths[procI];
-                forAll(procPaths, pathI)
-                {
-                    allRayPaths.append(procPaths[pathI]);
-                }
-            }
-        }
-    }
+//         if (Pstream::master())
+//         {
+//             // Combine all paths
+//             allRayPaths.clear();
+//             forAll(gatheredPaths, procI)
+//             {
+//                 const DynamicList<DynamicList<point>>& procPaths = gatheredPaths[procI];
+//                 forAll(procPaths, pathI)
+//                 {
+//                     allRayPaths.append(procPaths[pathI]);
+//                 }
+//             }
+//         }
+//     }
 
-    // Write VTK file (only master processor in parallel runs)
-    if (!Pstream::parRun() || Pstream::master())
-    {
-        fileName vtkFileName = vtkDir/"rays_" + laserName + "_" + Foam::name(runTime.timeIndex()) + ".vtk";
-        writeMultipleRaysToVTK(allRayPaths, vtkFileName);
+//     // Write VTK file (only master processor in parallel runs)
+//     if (!Pstream::parRun() || Pstream::master())
+//     {
+//         fileName vtkFileName = vtkDir/"rays_" + laserName + "_" + Foam::name(runTime.timeIndex()) + ".vtk";
+//         writeMultipleRaysToVTK(allRayPaths, vtkFileName);
         
-        Info<< "Written " << allRayPaths.size() << " ray paths to " << vtkFileName << endl;
-    }
-}
+//         Info<< "Written " << allRayPaths.size() << " ray paths to " << vtkFileName << endl;
+//     }
+// }
 
 
 
