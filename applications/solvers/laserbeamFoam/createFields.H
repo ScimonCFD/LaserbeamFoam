@@ -327,7 +327,8 @@ volVectorField n_filtered
         IOobject::NO_WRITE
     ),
     mesh,
-    dimensionedVector("n_filtered", dimless, vector::zero)
+    dimensionedVector("n_filtered", dimless, vector::zero)//,
+    // zeroGradientFvPatchVectorField::typeName
 );
 
 volScalarField epsilon1mask

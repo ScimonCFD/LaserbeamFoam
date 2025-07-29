@@ -139,14 +139,36 @@ class CompactRay
 };
 
 
+// struct combineRayLists
+// {
+//     void operator()(DynamicList<CompactRay>& x, const DynamicList<CompactRay>& y) const
+//     {
+//         x.append(y);
+//     }
+// };
+
+
 struct combineRayLists
 {
     void operator()(DynamicList<CompactRay>& x, const DynamicList<CompactRay>& y) const
     {
-        x.append(y);
+        // Create a hash set of existing items for O(1) lookup
+        HashSet<CompactRay> existing;
+        forAll(x, i)
+        {
+            existing.insert(x[i]);
+        }
+        
+        // Add only new items
+        forAll(y, i)
+        {
+            if (!existing.found(y[i]))
+            {
+                x.append(y[i]);
+            }
+        }
     }
 };
-
 
 struct combineLists
 {

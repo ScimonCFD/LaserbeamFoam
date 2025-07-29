@@ -31,8 +31,8 @@ V_incident	(0 1 0.5);//(0 1 0);//NORMALISED IN CODE
 laserRadius 0.0005;
 
 
-nRadial	50;
-nAngular	360;
+nRadial	25;
+nAngular	120;
 
 
 wavelength	1.064e-6;

@@ -74,6 +74,35 @@ alpha_filtered.correctBoundaryConditions();
         }
     }
 
+    // Access the boundary fields
+volScalarField::Boundary& alpha_filteredBf = alpha_filtered.boundaryFieldRef();
+const volScalarField::Boundary& alpha1Bf = alpha1.boundaryField();
+
+// Loop through all boundary patches
+forAll(alpha_filteredBf, patchi)
+{
+    // Get references to the patch fields
+    scalarField& alpha_filteredPatch = alpha_filteredBf[patchi];
+    const scalarField& alpha1Patch = alpha1Bf[patchi];
+    
+    // Apply the same logic to each face in the patch
+    forAll(alpha_filteredPatch, facei)
+    {
+        if (alpha1Patch[facei] > 0.99)
+        {
+            alpha_filteredPatch[facei] = 1.0;
+        }
+        else if (alpha1Patch[facei] < 0.01)
+        {
+            alpha_filteredPatch[facei] = 0.0;
+        }
+        else
+        {
+            alpha_filteredPatch[facei] = alpha1Patch[facei];
+        }
+    }
+}
+
     alpha_filtered.correctBoundaryConditions();
 
     LatentHeat =

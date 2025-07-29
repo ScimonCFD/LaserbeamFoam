@@ -924,7 +924,7 @@ DynamicList<CompactRay> Rays_current_processor;
         
 
 
-if (!globalBB.contains(globalRays[i].origin_))
+if (!globalBB.contains(globalRays[i].origin_)||globalRays[i].power_<1e-6)
 {
     // Point definitely outside mesh
     // WriteRays.append(globalRays[i].path_);
@@ -961,7 +961,11 @@ if (!globalBB.contains(globalRays[i].origin_))
             Rays_current_processor[i].currentCell_=myCellId;
 
 
-            if(alphaFilteredI[myCellId] >= dep_cutoff){//NEED TO CHANGE DIRECTION BASED ON INTERFACE NORMAL
+            // Pout<<"nfiltered: "<<nFilteredI[myCellId]<<endl;
+            // mag(nFilteredI[myCellId]);
+
+
+            if(alphaFilteredI[myCellId] >= dep_cutoff && mag(nFilteredI[myCellId]) > 0.5){//NEED TO CHANGE DIRECTION BASED ON INTERFACE NORMAL
                 // if(mag(nFilteredI[myCellId]) > 0.5){//mag(n) is blowing up for some reason?!?!?!?!?!
 
 
@@ -1107,6 +1111,7 @@ if (!globalBB.contains(globalRays[i].origin_))
                     {
                         Info<<"GT 90 !!!"<<endl;
                     Rays_current_processor[i].power_*=0.0;
+                    // Rays_current_processor[i].active_==false;
                     // deposition_[myCellId] += absorptivity*Q/mesh.V()[myCellId];//yDimI[myCellId];
                     }
                 //     // else{}
@@ -1114,36 +1119,34 @@ if (!globalBB.contains(globalRays[i].origin_))
                     {
                         deposition_[myCellId] += absorptivity*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
                         Rays_current_processor[i].power_ *= 1.0 - absorptivity;
-                        // V2 -=
-                        //     (
-                        //         (
-                        //             (
-                        //                 ((2.0*V2) & nFilteredI[myCellId])
-                        //                /(
-                        //                     mag(nFilteredI[myCellId])
-                        //                    *mag(nFilteredI[myCellId])
-                        //                 )
-                        //             )
-                        //         )*nFilteredI[myCellId]
-                        //     );
+                        Rays_current_processor[i].direction_-=(((
+                                        ((2.0*Rays_current_processor[i].direction_) & nFilteredI[myCellId])
+                                       /(mag(nFilteredI[myCellId])*mag(nFilteredI[myCellId])
+                                        )) )*nFilteredI[myCellId]);
 
 
                     }
 
                         // deposition_[myCellId]=1.0;//for debugging
                         
-                        Rays_current_processor[i].direction_-=(((
-                                        ((2.0*Rays_current_processor[i].direction_) & nFilteredI[myCellId])
-                                       /(mag(nFilteredI[myCellId])*mag(nFilteredI[myCellId])
-                                        )) )*nFilteredI[myCellId]
-                            );
+                        
 
             // WriteRayscurrentProcessor[i].path_.append(Rays_current_processor[i].origin_);
             // WriteRays_current_processor.append(Rays_current_processor[i].path_);
             // }
-            // else{}
+            
             }
-            else{}
+            else{
+
+                if(
+                        alphaFilteredI[myCellId] > dep_cutoff
+                     && mag(nFilteredI[myCellId]) < 0.5
+                    )
+                    {
+                            Rays_current_processor[i].direction_=-Rays_current_processor[i].direction_;
+                            Rays_current_processor[i].power_*=0.0;
+                    }
+            }
 
 
         Rays_current_processor[i].origin_+=iterator_distance*Rays_current_processor[i].direction_;
