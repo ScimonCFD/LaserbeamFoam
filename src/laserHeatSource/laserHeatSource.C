@@ -949,7 +949,7 @@ if (!globalBB.contains(globalRays[i].origin_)||globalRays[i].power_<1e-6)
         while(myCellId!=-1){
             // rayQ_[myCellId]+=0.5;
 
-        scalar iterator_distance = (0.5/pi.value())*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
+        scalar iterator_distance = (0.25/pi.value())*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
         
 
         // Rays_current_processor[i].origin_+=iterator_distance*Rays_current_processor[i].direction_;
@@ -1143,6 +1143,7 @@ if (!globalBB.contains(globalRays[i].origin_)||globalRays[i].power_<1e-6)
                      && mag(nFilteredI[myCellId]) < 0.5
                     )
                     {
+                        Info<<"WITHIN BULK"<<endl;
                             Rays_current_processor[i].direction_=-Rays_current_processor[i].direction_;
                             Rays_current_processor[i].power_*=0.0;
                     }
