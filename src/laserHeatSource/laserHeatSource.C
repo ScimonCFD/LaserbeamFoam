@@ -924,7 +924,7 @@ DynamicList<CompactRay> Rays_current_processor;
         
 
 
-if (!globalBB.contains(globalRays[i].origin_)||(globalRays[i].power_<1e-6))
+if (!globalBB.contains(globalRays[i].origin_))
 {
     // Point definitely outside mesh
     // WriteRays.append(globalRays[i].path_);
