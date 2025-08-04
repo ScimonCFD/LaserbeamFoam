@@ -873,28 +873,27 @@ void laserHeatSource::updateDeposition
     // Store the list of cell indices where the ray tips are located; these will
     // be used by the the findLocalSearch function when looking for the new tip
     // cell indices
-    labelList rayCellIDs(pointslistGlobal1.size(), -1);
+    // labelList rayCellIDs(pointslistGlobal1.size(), -1);
 
 
 
 
 
+Map<label> rayCellIDs;
 
-
-
-    DynamicList<CompactRay> Rays_all;
-
-    forAll(pointslistGlobal1, i){
-
-    CompactRay RayTemp(pointslistGlobal1[i],V_incident,pointassociatedpowers_global[i]);
-                RayTemp.global_Ray_number_=i;
-                RayTemp.currentCell_=mesh.findCell(pointslistGlobal1[i]);
-                RayTemp.path_.append(pointslistGlobal1[i]);
-                RayTemp.active_ = true;
-   
-                Rays_all.append(RayTemp);
-
-    }
+// Initialize rays
+DynamicList<CompactRay> Rays_all;
+forAll(pointslistGlobal1, i)
+{
+    CompactRay RayTemp(pointslistGlobal1[i], V_incident, pointassociatedpowers_global[i]);
+    RayTemp.global_Ray_number_ = i;
+    RayTemp.currentCell_ = -1;  // Initialize to -1, will be found later
+    RayTemp.path_.append(pointslistGlobal1[i]);
+    RayTemp.active_ = true;
+    
+    Rays_all.append(RayTemp);
+    rayCellIDs.insert(i, -1);  // Initialize in map
+}
 
     // Info<<"Number of rays: "<<Rays_all.size()<<endl;
     // Info<<"rayprint: "<<Rays_all[0].origin_<<endl;
@@ -920,15 +919,32 @@ auto countActiveRays = [](const DynamicList<CompactRay>& rays) -> label
 
 
 
+// Main ray tracing loop
+label iteration = 0;
+const label maxIterations = 10000;  // Safety limit
 
-
-// while(globalRays.size()>0){
-while(countActiveRays(globalRays) > 0)
+while(true)
 {
-
-// Info<<"Number of Rays in Domain: "<<globalRays.size()<<endl;
-Info<< "Number of Active Rays in Domain: " << countActiveRays(globalRays) << endl;
-
+    // Count active rays globally
+    label localActiveCount = countActiveRays(globalRays);
+    label globalActiveCount = localActiveCount;
+    reduce(globalActiveCount, sumOp<label>());
+    
+    if (globalActiveCount == 0)
+    {
+        Info<< "All rays inactive. Exiting loop." << endl;
+        break;
+    }
+    
+    if (iteration++ > maxIterations)
+    {
+        WarningInFunction
+            << "Maximum iterations reached. Breaking ray tracing loop." << endl;
+        break;
+    }
+    
+    Info<< "Iteration " << iteration << ": Active rays globally = " << globalActiveCount << endl;
+    
 
 //Find all points on current processor - WANT TO TRACK ALL RAYS ON PROCESSORS AND SYNC ONCE THEY ARE ALL OFF
 // DynamicList<DynamicList<point>> WriteRays_current_processor;
@@ -951,16 +967,42 @@ DynamicList<CompactRay> Rays_current_processor;
             continue;
         }
 
+        // Find cell containing ray
+        label myCellId = -1;
+        if (rayCellIDs.found(globalRays[i].global_Ray_number_))
+        {
+            label seedCell = rayCellIDs[globalRays[i].global_Ray_number_];
+            myCellId = findLocalCell(
+                globalRays[i].origin_, 
+                seedCell, 
+                mesh, 
+                maxLocalSearch, 
+                debug
+            );
+        }
+        else
+        {
+            myCellId = mesh.findCell(globalRays[i].origin_);
+        }
 
-
-        label myCellId =
-                        findLocalCell(
-                        globalRays[i].origin_, rayCellIDs[i], mesh, maxLocalSearch, debug
-                        );
-
-         if(myCellId!=-1){
+        if (myCellId != -1)
+        {
+            globalRays[i].currentCell_ = myCellId;
             Rays_current_processor.append(globalRays[i]);
-         }
+        }
+
+        
+
+
+
+        // label myCellId =
+        //                 findLocalCell(
+        //                 globalRays[i].origin_, rayCellIDs[i], mesh, maxLocalSearch, debug
+        //                 );
+
+        //  if(myCellId!=-1){
+        //     Rays_current_processor.append(globalRays[i]);
+        //  }
         
 
 
@@ -979,17 +1021,22 @@ DynamicList<CompactRay> Rays_current_processor;
     forAll(Rays_current_processor, i)// WANT TO TRACK RAYS TO BOUNDARY OF PROCESSOR OR TILL NO ENERGY
     {
 
+        label myCellId = Rays_current_processor[i].currentCell_;
+        label iterCount = 0;
+        const label maxIterPerRay = 1000;  // Prevent infinite loops per ray
+        
 
-        label myCellId =
-            findLocalCell(
-            Rays_current_processor[i].origin_, Rays_current_processor[i].currentCell_, mesh, maxLocalSearch, debug
-            );
+
+        // label myCellId =
+        //     findLocalCell(
+        //     Rays_current_processor[i].origin_, Rays_current_processor[i].currentCell_, mesh, maxLocalSearch, debug
+        //     );
 
 
-        while(myCellId!=-1 && Rays_current_processor[i].active_){
+        while(myCellId!=-1 && Rays_current_processor[i].active_ && iterCount++ < maxIterPerRay){
             // rayQ_[myCellId]+=0.5;
 
-        scalar iterator_distance = (0.5/pi.value())*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
+        scalar iterator_distance = (0.25/pi.value())*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
         
 
         // Rays_current_processor[i].origin_+=iterator_distance*Rays_current_processor[i].direction_;
@@ -1149,10 +1196,10 @@ DynamicList<CompactRay> Rays_current_processor;
 
                         if (theta_in >= pi.value()/2.0)
                     {
-                        Info<<"GT 90 !!!"<<endl;
-                    Rays_current_processor[i].power_*=0.0;
-                    // Rays_current_processor[i].active_==false;
-                    // deposition_[myCellId] += absorptivity*Q/mesh.V()[myCellId];//yDimI[myCellId];
+                    Info<< "Ray " << Rays_current_processor[i].global_Ray_number_ 
+                        << " at grazing angle, deactivating" << endl;
+                    Rays_current_processor[i].active_ = false;
+                    break;
                     }
                 //     // else{}
                     else
@@ -1165,6 +1212,13 @@ DynamicList<CompactRay> Rays_current_processor;
                                         )) )*nFilteredI[myCellId]);
 
 
+                                            // Check if power too low after absorption
+                        if (Rays_current_processor[i].power_ < 1e-6)
+                        {
+                        Rays_current_processor[i].active_ = false;
+                        break;
+                        }
+
                     }
 
                         // deposition_[myCellId]=1.0;//for debugging
@@ -1176,17 +1230,13 @@ DynamicList<CompactRay> Rays_current_processor;
             // }
             
             }
-            else{
-
-                if(
-                        alphaFilteredI[myCellId] > dep_cutoff
-                     && mag(nFilteredI[myCellId]) < 0.5
-                    )
-                    {
-                        Info<<"WITHIN BULK"<<endl;
-                            Rays_current_processor[i].direction_=-Rays_current_processor[i].direction_;
-                            Rays_current_processor[i].power_*=0.0;
-                    }
+            else if(alphaFilteredI[myCellId] > dep_cutoff && mag(nFilteredI[myCellId]) < 0.5)
+            {
+                Info<< "Ray " << Rays_current_processor[i].global_Ray_number_ 
+                    << " within bulk, reversing and deactivating" << endl;
+                Rays_current_processor[i].direction_ = -Rays_current_processor[i].direction_;
+                Rays_current_processor[i].active_ = false;
+                break;
             }
 
 
@@ -1207,12 +1257,25 @@ DynamicList<CompactRay> Rays_current_processor;
                 Rays_current_processor[i].origin_, Rays_current_processor[i].currentCell_, mesh, maxLocalSearch, debug
                 );
             Rays_current_processor[i].currentCell_=myCellId;
+
+                        // Update stored cell ID
+            if (myCellId != -1)
+            {
+                Rays_current_processor[i].currentCell_ = myCellId;
+                rayCellIDs[Rays_current_processor[i].global_Ray_number_] = myCellId;
+            }
         
         }
 
         // scalar Q = (Rays_current_processor[i].power_);
         // Pout<<"current processor rays: "<<i<<"\t"<<Rays_current_processor[i]<<endl;
-
+        if (iterCount >= maxIterPerRay)
+        {
+            WarningInFunction
+                << "Ray " << Rays_current_processor[i].global_Ray_number_ 
+                << " exceeded max iterations per ray. Deactivating." << endl;
+            Rays_current_processor[i].active_ = false;
+        }
 
 
 
@@ -1226,17 +1289,29 @@ Rays_current_processor[i].path_.append(Rays_current_processor[i].origin_);//THIN
 
 /*DynamicList<CompactRay>*/ globalRays = Rays_current_processor;//to sync
                                     //    WriteRays = WriteRays_current_processor;
-
+Pstream::waitRequests();
 
 Pstream::combineGather(globalRays, combineRayLists());
 Pstream::broadcast(globalRays);//Pstream::combineScatter(globalRays);
 
-// Pstream::combineGather(WriteRays, combineRayPaths());
-// Pstream::broadcast(WriteRays);//Pstream::combineScatter(WriteRays);
 
-// WriteRays
+/*
+    static label cleanupCounter = 0;
+    if (++cleanupCounter % 10 == 0)  // Every 10 iterations
+    {
+        DynamicList<CompactRay> activeRays;
+        forAll(globalRays, i)
+        {
+            if (globalRays[i].active_)
+            {
+                activeRays.append(globalRays[i]);
+            }
+        }
+        globalRays = activeRays;
+        Info<< "Cleaned up inactive rays. Active rays: " << globalRays.size() << endl;
+    }
+*/
 
-// Info<<"ray path size: "<<globalRays[0].path_.size()<<endl;
 
 }
 

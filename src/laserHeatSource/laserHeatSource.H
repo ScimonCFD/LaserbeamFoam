@@ -109,7 +109,8 @@ class CompactRay
             origin_ == other.origin_ && 
             direction_ == other.direction_ && 
             power_ == other.power_ &&
-            global_Ray_number_ == other.global_Ray_number_;
+            global_Ray_number_ == other.global_Ray_number_ &&
+            active_ == other.active_;
     }
 
     bool operator!=(const CompactRay& other) const
@@ -152,19 +153,42 @@ struct combineRayLists
 {
     void operator()(DynamicList<CompactRay>& x, const DynamicList<CompactRay>& y) const
     {
-        // Create a hash set of existing items for O(1) lookup
-        HashSet<CompactRay> existing;
+        // Create a map to track rays by their global number
+        Map<label> existingRayIndices;
+        
+        // Build map of existing rays
         forAll(x, i)
         {
-            existing.insert(x[i]);
+            existingRayIndices.insert(x[i].global_Ray_number_, i);
         }
         
-        // Add only new items
+        // Update existing rays or add new ones
         forAll(y, i)
         {
-            if (!existing.found(y[i]))
+            const CompactRay& newRay = y[i];
+            
+            if (existingRayIndices.found(newRay.global_Ray_number_))
             {
-                x.append(y[i]);
+                // Update existing ray if the new one is more recent
+                // (has a longer path or different state)
+                label existingIdx = existingRayIndices[newRay.global_Ray_number_];
+                
+                // Take the ray with the longer path (more recent)
+                if (newRay.path_.size() > x[existingIdx].path_.size())
+                {
+                    x[existingIdx] = newRay;
+                }
+                // If paths are same length, take the one with lower power (more processed)
+                else if (newRay.path_.size() == x[existingIdx].path_.size() && 
+                         newRay.power_ < x[existingIdx].power_)
+                {
+                    x[existingIdx] = newRay;
+                }
+            }
+            else
+            {
+                // Add new ray
+                x.append(newRay);
             }
         }
     }
