@@ -890,6 +890,7 @@ void laserHeatSource::updateDeposition
                 RayTemp.global_Ray_number_=i;
                 RayTemp.currentCell_=mesh.findCell(pointslistGlobal1[i]);
                 RayTemp.path_.append(pointslistGlobal1[i]);
+                RayTemp.active_ = true;
    
                 Rays_all.append(RayTemp);
 
@@ -901,9 +902,32 @@ void laserHeatSource::updateDeposition
 // DynamicList<DynamicList<point>> WriteRays;
 DynamicList<CompactRay> globalRays = Rays_all;
 
-while(globalRays.size()>0){
 
-Info<<"Number of Rays in Domain: "<<globalRays.size()<<endl;
+
+// Helper function to count active rays
+auto countActiveRays = [](const DynamicList<CompactRay>& rays) -> label
+{
+    label count = 0;
+    forAll(rays, i)
+    {
+        if (rays[i].active_)
+        {
+            count++;
+        }
+    }
+    return count;
+};
+
+
+
+
+
+// while(globalRays.size()>0){
+while(countActiveRays(globalRays) > 0)
+{
+
+// Info<<"Number of Rays in Domain: "<<globalRays.size()<<endl;
+Info<< "Number of Active Rays in Domain: " << countActiveRays(globalRays) << endl;
 
 
 //Find all points on current processor - WANT TO TRACK ALL RAYS ON PROCESSORS AND SYNC ONCE THEY ARE ALL OFF
@@ -912,6 +936,22 @@ DynamicList<CompactRay> Rays_current_processor;
 // DynamicList<CompactRay> WriteRayscurrentProcessor;
     forAll(globalRays, i)
     {
+
+        if (!globalRays[i].active_)
+        {
+            continue;  // Skip inactive rays
+        }
+
+        // Check if ray should be deactivated
+        if (!globalBB.contains(globalRays[i].origin_) /*|| globalRays[i].power_ < 1e-6*/)
+        {
+            globalRays[i].active_ = false;
+            // Store final path if needed
+            // WriteRays.append(globalRays[i].path_);
+            continue;
+        }
+
+
 
         label myCellId =
                         findLocalCell(
@@ -924,13 +964,13 @@ DynamicList<CompactRay> Rays_current_processor;
         
 
 
-if (!globalBB.contains(globalRays[i].origin_)||globalRays[i].power_<1e-6)
-{
-    // Point definitely outside mesh
-    // WriteRays.append(globalRays[i].path_);
-    globalRays.remove();
-    // return false;
-}
+// if (!globalBB.contains(globalRays[i].origin_)||globalRays[i].power_<1e-6)
+// {
+//     // Point definitely outside mesh
+//     // WriteRays.append(globalRays[i].path_);
+//     globalRays.remove();
+//     // return false;
+// }
 
 
     }
@@ -946,19 +986,19 @@ if (!globalBB.contains(globalRays[i].origin_)||globalRays[i].power_<1e-6)
             );
 
 
-        while(myCellId!=-1){
+        while(myCellId!=-1 && Rays_current_processor[i].active_){
             // rayQ_[myCellId]+=0.5;
 
-        scalar iterator_distance = (0.25/pi.value())*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
+        scalar iterator_distance = (0.5/pi.value())*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
         
 
         // Rays_current_processor[i].origin_+=iterator_distance*Rays_current_processor[i].direction_;
         
-            myCellId =
-                findLocalCell(
-                Rays_current_processor[i].origin_, Rays_current_processor[i].currentCell_, mesh, maxLocalSearch, debug
-                );
-            Rays_current_processor[i].currentCell_=myCellId;
+            // myCellId =
+            //     findLocalCell(
+            //     Rays_current_processor[i].origin_, Rays_current_processor[i].currentCell_, mesh, maxLocalSearch, debug
+            //     );
+            // Rays_current_processor[i].currentCell_=myCellId;
 
 
             // Pout<<"nfiltered: "<<nFilteredI[myCellId]<<endl;
@@ -1154,6 +1194,20 @@ if (!globalBB.contains(globalRays[i].origin_)||globalRays[i].power_<1e-6)
 
 
         Rays_current_processor[i].path_.append(Rays_current_processor[i].origin_);//THINK THIS IS OVERKILL
+        
+             // Check if ray left domain
+            if (!globalBB.contains(Rays_current_processor[i].origin_))
+            {
+                Rays_current_processor[i].active_ = false;
+                break;
+            }
+
+        myCellId =
+                findLocalCell(
+                Rays_current_processor[i].origin_, Rays_current_processor[i].currentCell_, mesh, maxLocalSearch, debug
+                );
+            Rays_current_processor[i].currentCell_=myCellId;
+        
         }
 
         // scalar Q = (Rays_current_processor[i].power_);
