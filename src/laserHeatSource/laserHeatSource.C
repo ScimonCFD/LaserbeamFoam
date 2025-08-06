@@ -597,8 +597,8 @@ void laserHeatSource::updateDeposition
 //code to add beam samples
 
     
-    if(Radial_Polar_HS()==true){
-
+    if (Radial_Polar_HS()==true)
+    {
         Info<<"nRadial_: "<<nRadial_<<endl;
         Info<<"nAngular_: "<<nAngular_<<endl;
 
@@ -722,7 +722,8 @@ void laserHeatSource::updateDeposition
     
     }
 
-    else{//OLD METHOD
+    else
+    {//OLD METHOD
 
            forAll(CI, celli)
     {
@@ -884,113 +885,139 @@ void laserHeatSource::updateDeposition
 
     DynamicList<CompactRay> Rays_all;
 
-    forAll(pointslistGlobal1, i){
+    forAll(pointslistGlobal1, i)
+    {
 
-    CompactRay RayTemp(pointslistGlobal1[i],V_incident,pointassociatedpowers_global[i]);
-                RayTemp.global_Ray_number_=i;
-                RayTemp.currentCell_=mesh.findCell(pointslistGlobal1[i]);
-                RayTemp.path_.append(pointslistGlobal1[i]);
+        CompactRay RayTemp(pointslistGlobal1[i],V_incident,pointassociatedpowers_global[i]);
+        RayTemp.global_Ray_number_=i;
+        RayTemp.currentCell_=mesh.findCell(pointslistGlobal1[i]);
+        RayTemp.path_.append(pointslistGlobal1[i]);
    
-                Rays_all.append(RayTemp);
+        Rays_all.append(RayTemp);
 
     }
 
     // Info<<"Number of rays: "<<Rays_all.size()<<endl;
     // Info<<"rayprint: "<<Rays_all[0].origin_<<endl;
     // Info<<"rayprint: "<<Rays_all[1].active_<<endl;
-// DynamicList<DynamicList<point>> WriteRays;
-DynamicList<CompactRay> globalRays = Rays_all;
+    // DynamicList<DynamicList<point>> WriteRays;
+    DynamicList<CompactRay> globalRays = Rays_all;
 
-while(globalRays.size()>0){
-
-Info<<"Number of Rays in Domain: "<<globalRays.size()<<endl;
-
-
-//Find all points on current processor - WANT TO TRACK ALL RAYS ON PROCESSORS AND SYNC ONCE THEY ARE ALL OFF
-// DynamicList<DynamicList<point>> WriteRays_current_processor;
-DynamicList<CompactRay> Rays_current_processor;
-// DynamicList<CompactRay> WriteRayscurrentProcessor;
-    forAll(globalRays, i)
+    while (globalRays.size() > 0)
     {
+        Info<<"Number of Rays in Domain: "<<globalRays.size()<<endl;
 
-        label myCellId =
-                        findLocalCell(
+
+        //Find all points on current processor - WANT TO TRACK ALL RAYS ON PROCESSORS AND SYNC ONCE THEY ARE ALL OFF
+        // DynamicList<DynamicList<point>> WriteRays_current_processor;
+        DynamicList<CompactRay> Rays_current_processor;
+        // DynamicList<CompactRay> WriteRayscurrentProcessor;
+        forAll(globalRays, i)
+        {
+            // Check if the ray is within the global bound box and its power is
+            // greater than a small number
+            if (globalBB.contains(globalRays[i].origin_) || globalRays[i].power_ < 1e-6)
+            {
+                const label myCellId =
+                    findLocalCell
+                    (
                         globalRays[i].origin_, rayCellIDs[i], mesh, maxLocalSearch, debug
-                        );
+                    );
 
-         if(myCellId!=-1){
-            Rays_current_processor.append(globalRays[i]);
-         }
-        
+                if (myCellId!=-1)
+                {
+                    Rays_current_processor.append(globalRays[i]);
+                }
+            }
+        }
+
+        // Check the total number of active rays makes sense
+        // label nGlobalRays = 0;
+        // forAll(globalRays, i)
+        // {
+        //     if (globalRays[i].active_)
+        //     {
+        //         nGlobalRays++;
+        //     }
+        // }
+        // Info<< "nGlobalRays = " << nGlobalRays << nl
+        //     << "sum(processorRays) = "
+        //     << returnReduce(Rays_current_processor.size(), sumOp<label>())
+        //     << endl;
+
+        // Careful: we can't do this check as the globalBB may not coincide with the global geometry
+        // if (nGlobalRays != returnReduce(Rays_current_processor.size(), sumOp<label>()))
+        // {
+        //     FatalErrorInFunction
+        //         << "The sum of the processor rays is different to the number "
+        //         << "of global rays" << nl
+        //         << "globalRays.size() = " << globalRays.size() << nl
+        //         << "sum(Rays_current_processor.size()) = "
+        //             << returnReduce(Rays_current_processor.size(), sumOp<label>()) << exit(FatalError);
+        // }
+
+        // Pout<<"Rays on processir: "<<Rays_current_processor<<endl;
+        forAll(Rays_current_processor, i)// WANT TO TRACK RAYS TO BOUNDARY OF PROCESSOR OR TILL NO ENERGY
+        {
 
 
-if (!globalBB.contains(globalRays[i].origin_)||globalRays[i].power_<1e-6)
-{
-    // Point definitely outside mesh
-    // WriteRays.append(globalRays[i].path_);
-    globalRays.remove();
-    // return false;
-}
-
-
-    }
-
-// Pout<<"Rays on processir: "<<Rays_current_processor<<endl;
-    forAll(Rays_current_processor, i)// WANT TO TRACK RAYS TO BOUNDARY OF PROCESSOR OR TILL NO ENERGY
-    {
-
-
-        label myCellId =
-            findLocalCell(
-            Rays_current_processor[i].origin_, Rays_current_processor[i].currentCell_, mesh, maxLocalSearch, debug
-            );
-
-
-        while(myCellId!=-1){
-            // rayQ_[myCellId]+=0.5;
-
-        scalar iterator_distance = (0.5/pi.value())*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
-        
-
-        // Rays_current_processor[i].origin_+=iterator_distance*Rays_current_processor[i].direction_;
-        
-            myCellId =
+            label myCellId =
                 findLocalCell(
-                Rays_current_processor[i].origin_, Rays_current_processor[i].currentCell_, mesh, maxLocalSearch, debug
+                    Rays_current_processor[i].origin_, Rays_current_processor[i].currentCell_, mesh, maxLocalSearch, debug
                 );
-            Rays_current_processor[i].currentCell_=myCellId;
 
 
-            // Pout<<"nfiltered: "<<nFilteredI[myCellId]<<endl;
-            // mag(nFilteredI[myCellId]);
+            while (myCellId!=-1)
+            {
+                // rayQ_[myCellId]+=0.5;
+
+                scalar iterator_distance = (0.5/pi.value())*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
+        
+
+                // Rays_current_processor[i].origin_+=iterator_distance*Rays_current_processor[i].direction_;
+        
+                myCellId =
+                    findLocalCell(
+                        Rays_current_processor[i].origin_, Rays_current_processor[i].currentCell_, mesh, maxLocalSearch, debug
+                    );
+                Rays_current_processor[i].currentCell_=myCellId;
+
+                if (myCellId == -1)
+                {
+                    break;
+                }
+
+                // Pout<<"nfiltered: "<<nFilteredI[myCellId]<<endl;
+                // mag(nFilteredI[myCellId]);
 
 
-            if(alphaFilteredI[myCellId] >= dep_cutoff && mag(nFilteredI[myCellId]) > 0.5){//NEED TO CHANGE DIRECTION BASED ON INTERFACE NORMAL
-                // if(mag(nFilteredI[myCellId]) > 0.5){//mag(n) is blowing up for some reason?!?!?!?!?!
+                if(alphaFilteredI[myCellId] >= dep_cutoff && mag(nFilteredI[myCellId]) > 0.5)
+                {//NEED TO CHANGE DIRECTION BASED ON INTERFACE NORMAL
+                    // if(mag(nFilteredI[myCellId]) > 0.5){//mag(n) is blowing up for some reason?!?!?!?!?!
 
 
-                //     // Info<<"detected interface"<<endl;
+                    //     // Info<<"detected interface"<<endl;
 
 
-                const scalar damping_frequency =
+                    const scalar damping_frequency =
                         plasma_frequency*plasma_frequency
-                       *constant::electromagnetic::epsilon0.value()
-                       *resistivity_in[myCellId];
+                        *constant::electromagnetic::epsilon0.value()
+                        *resistivity_in[myCellId];
 
                     const scalar e_r =
                         1.0
-                      - (
+                        - (
                             sqr(plasma_frequency)/(sqr(angular_frequency)
-                          + sqr(damping_frequency))
+                            + sqr(damping_frequency))
                         );
 
                     const scalar e_i =
                         (damping_frequency/angular_frequency)
                         *(
                             plasma_frequency*plasma_frequency
-                           /(
+                            /(
                                 angular_frequency*angular_frequency
-                              + damping_frequency*damping_frequency
+                                + damping_frequency*damping_frequency
                             )
                         );
 
@@ -1006,7 +1033,7 @@ if (!globalBB.contains(globalRays[i].origin_)||globalRays[i].power_<1e-6)
                             (Foam::sqrt((e_r*e_r) +(e_i*e_i)) - e_r)/2.0
                         );
 
-                        scalar argument =
+                    scalar argument =
                         (
                             Rays_current_processor[i].direction_ & nFilteredI[myCellId]
                         )/(mag(Rays_current_processor[i].direction_)*mag(nFilteredI[myCellId]));
@@ -1030,16 +1057,16 @@ if (!globalBB.contains(globalRays[i].origin_)||globalRays[i].power_<1e-6)
                                 sqr
                                 (
                                     sqr(ref_index)
-                                  - sqr(ext_coefficient)
-                                  - sqr(Foam::sin(theta_in))
+                                    - sqr(ext_coefficient)
+                                    - sqr(Foam::sin(theta_in))
                                 )
-                              + (
+                                + (
                                     4.0*sqr(ref_index)*sqr(ext_coefficient)
                                 )
                             )
-                          + sqr(ref_index)
-                          - sqr(ext_coefficient)
-                          - sqr(Foam::sin(theta_in))/2.0
+                            + sqr(ref_index)
+                            - sqr(ext_coefficient)
+                            - sqr(Foam::sin(theta_in))/2.0
                         );
 
                     const scalar beta_laser =
@@ -1051,14 +1078,14 @@ if (!globalBB.contains(globalRays[i].origin_)||globalRays[i].power_<1e-6)
                                     sqr
                                     (
                                         sqr(ref_index)
-                                      - sqr(ext_coefficient)
-                                      - sqr(Foam::sin(theta_in))
+                                        - sqr(ext_coefficient)
+                                        - sqr(Foam::sin(theta_in))
                                     )
-                                  + 4.0*sqr(ref_index)*sqr(ext_coefficient)
+                                    + 4.0*sqr(ref_index)*sqr(ext_coefficient)
                                 )
-                              - sqr(ref_index)
-                              + sqr(ext_coefficient)
-                              + sqr(Foam::sin(theta_in))
+                                - sqr(ref_index)
+                                + sqr(ext_coefficient)
+                                + sqr(Foam::sin(theta_in))
                             )/2.0
                         );
 
@@ -1066,127 +1093,129 @@ if (!globalBB.contains(globalRays[i].origin_)||globalRays[i].power_<1e-6)
                         (
                             (
                                 sqr(alpha_laser)
-                              + sqr(beta_laser)
-                              - 2.0*alpha_laser*Foam::cos(theta_in)
-                              + sqr(Foam::cos(theta_in))
+                                + sqr(beta_laser)
+                                - 2.0*alpha_laser*Foam::cos(theta_in)
+                                + sqr(Foam::cos(theta_in))
                             )
-                           /(
-                               sqr(alpha_laser)
-                             + sqr(beta_laser)
-                             + 2.0*alpha_laser*Foam::cos(theta_in)
-                             + sqr(Foam::cos(theta_in))
-                           )
+                            /(
+                                sqr(alpha_laser)
+                                + sqr(beta_laser)
+                                + 2.0*alpha_laser*Foam::cos(theta_in)
+                                + sqr(Foam::cos(theta_in))
+                            )
                         );
 
                     const scalar R_p =
                         R_s
-                       *(
-                           (
-                               sqr(alpha_laser)
-                             + sqr(beta_laser)
-                             - (
-                                   2.0*alpha_laser*Foam::sin(theta_in)
-                                  *Foam::tan(theta_in)
-                               )
-                             + (
-                                   sqr(Foam::sin(theta_in))
-                                  *sqr(Foam::tan(theta_in))
-                               )
-                           )
-                          /(
-                              sqr(alpha_laser)
-                            + sqr(beta_laser)
-                            + (
-                                  2.0*alpha_laser*Foam::sin(theta_in)
-                                 *Foam::tan(theta_in)
-                              )
-                            + sqr(Foam::sin(theta_in))*sqr(Foam::tan(theta_in))
-                           )
-                       );
+                        *(
+                            (
+                                sqr(alpha_laser)
+                                + sqr(beta_laser)
+                                - (
+                                    2.0*alpha_laser*Foam::sin(theta_in)
+                                    *Foam::tan(theta_in)
+                                )
+                                + (
+                                    sqr(Foam::sin(theta_in))
+                                    *sqr(Foam::tan(theta_in))
+                                )
+                            )
+                            /(
+                                sqr(alpha_laser)
+                                + sqr(beta_laser)
+                                + (
+                                    2.0*alpha_laser*Foam::sin(theta_in)
+                                    *Foam::tan(theta_in)
+                                )
+                                + sqr(Foam::sin(theta_in))*sqr(Foam::tan(theta_in))
+                            )
+                        );
                         
                         
-                        const scalar absorptivity = 1.0- ((R_s + R_p)/2.0);//1.0;//
+                    const scalar absorptivity = 1.0- ((R_s + R_p)/2.0);//1.0;//
 
-                        if (theta_in >= pi.value()/2.0)
+                    if (theta_in >= pi.value()/2.0)
                     {
                         Info<<"GT 90 !!!"<<endl;
-                    Rays_current_processor[i].power_*=0.0;
-                    // Rays_current_processor[i].active_==false;
-                    // deposition_[myCellId] += absorptivity*Q/mesh.V()[myCellId];//yDimI[myCellId];
+                        Rays_current_processor[i].power_*=0.0;
+                        // Rays_current_processor[i].active_==false;
+                        // deposition_[myCellId] += absorptivity*Q/mesh.V()[myCellId];//yDimI[myCellId];
                     }
-                //     // else{}
+                    //     // else{}
                     else
                     {
                         deposition_[myCellId] += absorptivity*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
                         Rays_current_processor[i].power_ *= 1.0 - absorptivity;
                         Rays_current_processor[i].direction_-=(((
-                                        ((2.0*Rays_current_processor[i].direction_) & nFilteredI[myCellId])
-                                       /(mag(nFilteredI[myCellId])*mag(nFilteredI[myCellId])
-                                        )) )*nFilteredI[myCellId]);
+                            ((2.0*Rays_current_processor[i].direction_) & nFilteredI[myCellId])
+                            /(mag(nFilteredI[myCellId])*mag(nFilteredI[myCellId])
+                            )) )*nFilteredI[myCellId]);
 
 
                     }
 
-                        // deposition_[myCellId]=1.0;//for debugging
+                    // deposition_[myCellId]=1.0;//for debugging
                         
                         
 
-            // WriteRayscurrentProcessor[i].path_.append(Rays_current_processor[i].origin_);
-            // WriteRays_current_processor.append(Rays_current_processor[i].path_);
-            // }
+                    // WriteRayscurrentProcessor[i].path_.append(Rays_current_processor[i].origin_);
+                    // WriteRays_current_processor.append(Rays_current_processor[i].path_);
+                    // }
             
-            }
-            else{
-
-                if(
+                }
+                else
+                {
+                    if(
                         alphaFilteredI[myCellId] > dep_cutoff
-                     && mag(nFilteredI[myCellId]) < 0.5
+                        && mag(nFilteredI[myCellId]) < 0.5
                     )
                     {
                         Info<<"WITHIN BULK"<<endl;
-                            Rays_current_processor[i].direction_=-Rays_current_processor[i].direction_;
-                            Rays_current_processor[i].power_*=0.0;
+                        Rays_current_processor[i].direction_=-Rays_current_processor[i].direction_;
+                        Rays_current_processor[i].power_*=0.0;
+
+                        // Philip: Set active flag to false?
                     }
+                }
+
+
+                Rays_current_processor[i].origin_ +=
+                    iterator_distance*Rays_current_processor[i].direction_;
+
+
+                Rays_current_processor[i].path_.append
+                (
+                    Rays_current_processor[i].origin_
+                );//THINK THIS IS OVERKILL
             }
 
+            // scalar Q = (Rays_current_processor[i].power_);
+            // Pout<<"current processor rays: "<<i<<"\t"<<Rays_current_processor[i]<<endl;
 
-        Rays_current_processor[i].origin_+=iterator_distance*Rays_current_processor[i].direction_;
 
-
-        Rays_current_processor[i].path_.append(Rays_current_processor[i].origin_);//THINK THIS IS OVERKILL
+            Rays_current_processor[i].path_.append(Rays_current_processor[i].origin_);//THINK THIS IS OVERKILL
         }
 
-        // scalar Q = (Rays_current_processor[i].power_);
-        // Pout<<"current processor rays: "<<i<<"\t"<<Rays_current_processor[i]<<endl;
+        // Pout<<"HERE all processors out"<<endl;
+        //NOW WANT TO SWAP ALL LISTS OF RAYS THAT HAVE LEFT ALL PROCESSORS TO SEE IFD THEY ARE ON OTHER PROCESSORS
+
+        /*DynamicList<CompactRay>*/ globalRays = Rays_current_processor;//to sync
+        //    WriteRays = WriteRays_current_processor;
 
 
+        Pstream::combineGather(globalRays, combineRayLists());
+        Pstream::broadcast(globalRays);//Pstream::combineScatter(globalRays);
 
+        // Pstream::combineGather(WriteRays, combineRayPaths());
+        // Pstream::broadcast(WriteRays);//Pstream::combineScatter(WriteRays);
 
-Rays_current_processor[i].path_.append(Rays_current_processor[i].origin_);//THINK THIS IS OVERKILL
+        // WriteRays
 
-
+        // Info<<"ray path size: "<<globalRays[0].path_.size()<<endl;
 
     }
-// Pout<<"HERE all processors out"<<endl;
-    //NOW WANT TO SWAP ALL LISTS OF RAYS THAT HAVE LEFT ALL PROCESSORS TO SEE IFD THEY ARE ON OTHER PROCESSORS
 
-/*DynamicList<CompactRay>*/ globalRays = Rays_current_processor;//to sync
-                                    //    WriteRays = WriteRays_current_processor;
-
-
-Pstream::combineGather(globalRays, combineRayLists());
-Pstream::broadcast(globalRays);//Pstream::combineScatter(globalRays);
-
-// Pstream::combineGather(WriteRays, combineRayPaths());
-// Pstream::broadcast(WriteRays);//Pstream::combineScatter(WriteRays);
-
-// WriteRays
-
-// Info<<"ray path size: "<<globalRays[0].path_.size()<<endl;
-
-}
-
-// Info<<"ray path size: "<<globalRays[0].path_.size()<<endl;
+    // Info<<"ray path size: "<<globalRays[0].path_.size()<<endl;
 
 
 // Info<<"path test"<<Rays_all[0].path_<<endl;
