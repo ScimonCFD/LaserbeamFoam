@@ -630,18 +630,9 @@ void laserHeatSource::updateDeposition
         {//if using adaptive sampling
             // Use sqrt spacing for better Gaussian sampling
             scalar fraction = scalar(iR + 0.5) / nRadial_;//if using adaptive sampling
-            radialPoints[iR] = rMax * pow(fraction,2.0);//if using adaptive sampling increase this power for tighter sampling around the peak
+            radialPoints[iR] = rMax * pow(fraction,1.0);//if using adaptive sampling increase this power for tighter sampling around the peak // KEEP AS ! FOR NOW UNTIL WE KNOW IF ITS USEFUL
         }//if using adaptive sampling
 
-
-
-        // Pout<<"startpoint: "<<startIdx<<endl;
-        // Pout<<"Endpoint: "<<endIdx<<endl;
-        // Info<<"\n"<<endl;
-        // Info<<"Number of Cores Used in Ray-Tracing"<<Pstream::nProcs()<<endl;
-        // Info<<"\n"<<endl;
-
-        
 
 
         point P0 (currentLaserPosition.x(),currentLaserPosition.y(),currentLaserPosition.z());
@@ -971,10 +962,6 @@ void laserHeatSource::updateDeposition
             {
                 // rayQ_[myCellId]+=0.5;
 
-                scalar iterator_distance = (0.5/pi.value())*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
-        
-
-                // Rays_current_processor[i].origin_+=iterator_distance*Rays_current_processor[i].direction_;
         
                 myCellId =
                     findLocalCell(
@@ -1136,7 +1123,8 @@ void laserHeatSource::updateDeposition
 
                     if (theta_in >= pi.value()/2.0)
                     {
-                        Info<<"GT 90 !!!"<<endl;
+                        Info<<"Theta = "<<theta_in<<endl;
+                        // deposition_[myCellId] += absorptivity*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
                         Rays_current_processor[i].power_*=0.0;
                         // Rays_current_processor[i].active_==false;
                         // deposition_[myCellId] += absorptivity*Q/mesh.V()[myCellId];//yDimI[myCellId];
@@ -1171,12 +1159,17 @@ void laserHeatSource::updateDeposition
                     )
                     {
                         Info<<"WITHIN BULK"<<endl;
+
+                        
+                        // deposition_[myCellId] += absorptivity*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
                         Rays_current_processor[i].direction_=-Rays_current_processor[i].direction_;
-                        Rays_current_processor[i].power_*=0.0;
+                        // Rays_current_processor[i].power_*=0.0;
 
                         // Philip: Set active flag to false?
                     }
                 }
+
+                scalar iterator_distance = (0.25/pi.value())*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
 
 
                 Rays_current_processor[i].origin_ +=
