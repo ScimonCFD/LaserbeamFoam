@@ -3,7 +3,7 @@
     scalarField residual(epsilon1.primitiveField().size(), 1.0);
     scalar maxResidual = 1.0;
     scalar meanResidual = 1.0;
-    scalar Tresidual = 1.0;
+    //scalar Tresidual = 1.0;
 
     TRHS *= 0.0;
 

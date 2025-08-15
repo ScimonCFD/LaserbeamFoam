@@ -47,12 +47,9 @@
     laser.yDim().correctBoundaryConditions();
 
     metalaverage = fvc::average(alpha1);
-    laser.refineFlag() *= 0.0;
-    laser.refineFlag() += metalaverage;
-    laser.refineFlag().correctBoundaryConditions();
 
     alpha_filtered = volScalarField("alpha_filtered", alpha1);
-alpha_filtered.correctBoundaryConditions();
+    alpha_filtered.correctBoundaryConditions();
     scalarField& alpha_filteredI = alpha_filtered;
     // alpha_filteredI.correctBoundaryConditions();
     forAll(CI, celli)

@@ -214,9 +214,6 @@ class laserHeatSource
         //- y dimension field
         volScalarField yDim_;
 
-        //- Refine flag field
-        volScalarField refineFlag_;
-
         //- Powder sim flag
         //  Needed for cases with spherical particles or spurious currents will
         //  smear out the particle interface un-physically
@@ -224,7 +221,7 @@ class laserHeatSource
 
         //- new laser discretisation flag
         //  Tell the heat source if you want to discreetise the traditional laserbeamfoam way or in radial and polar coordinates
-        const Switch Radial_Polar_HS_;
+        const Switch radialPolarHeatSource_;
 
         //- List of the laser names
         wordList laserNames_;
@@ -243,6 +240,25 @@ class laserHeatSource
 
 
     // Private Member Functions
+
+        //- Create the initial rays
+        //  This involves creating a list of points (starting position of the
+        //  laser rays) and their associated power (J/s)
+        void createInitialRays
+        (
+            DynamicList<vector>& initial_points,
+            DynamicList<scalar>& point_assoc_power,
+            const vectorField& CI,
+            const vector& currentLaserPosition,
+            const scalar laserRadius,
+            const label N_sub_divisions,
+            const label nRadial,
+            const label nAngular,
+            const vector& V_incident,
+            const scalar Radius_Flavour,
+            const scalar Q_cond,
+            const scalar beam_radius
+        ) const;
 
         //- Disallow default bitwise copy construct
         laserHeatSource(const laserHeatSource&);
@@ -283,12 +299,6 @@ public:
             return yDim_;
         }
 
-        //- Non-const access to the refineFlag field
-        volScalarField& refineFlag()
-        {
-            return refineFlag_;
-        }
-
         //- Const access to the powderSim flag
         const Switch& powderSim() const
         {
@@ -296,9 +306,9 @@ public:
         }
 
         //- Const access to the HS discretisation flag
-        const Switch& Radial_Polar_HS() const
+        const Switch& radialPolarHeatSource() const
         {
-            return Radial_Polar_HS_;
+            return radialPolarHeatSource_;
         }
 
         //- Update the deposition field for all lasers
@@ -328,8 +338,8 @@ public:
             const scalar currentLaserPower,
             const scalar laserRadius,
             const label N_sub_divisions,
-            const label nRadial_,   //added for radial polar heat source
-            const label nAngular_,   //added for radial polar heat source
+            const label nRadial,
+            const label nAngular,
             const vector& V_incident,
             const scalar wavelength,
             const scalar e_num_density,
