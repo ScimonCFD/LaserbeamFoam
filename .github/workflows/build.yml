@@ -8,13 +8,13 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         container-image:
-          - name: "OpenFOAM-10"
-            image: "openfoam/openfoam10-paraview56:latest"
-            source: "/opt/openfoam10/etc/bashrc"
+          - name: "OpenFOAM-v2506"
+            image: "opencfd/openfoam-dev:2506"
+            source: "/usr/lib/openfoam/openfoam2506/etc/bashrc"
             buildflags: "-j"
 
     container:
@@ -23,7 +23,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
 
       - name: Allwmake
         shell: bash -l {0}
@@ -37,3 +36,15 @@ jobs:
           source ${{ matrix.container-image.source }}
           cd tutorials
           ./Alltest
+
+      - name: Upload test logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs.${{ matrix.container-image.name }}
+          path: tutorialsTest/logs
+          retention-days: 10
+
+      - name: Set job status
+        if: ${{ failure() }}
+        run: echo "::error::Alltest failed, marking job as failed"
