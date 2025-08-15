@@ -6,5 +6,6 @@ echo "Cleaning applications"
 echo
 
 wclean all solvers
+wclean all utilities
 
 #------------------------------------------------------------------------------

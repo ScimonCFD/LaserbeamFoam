@@ -1,6 +1,9 @@
 #!/bin/bash
 cd "${0%/*}" || exit  # Run from this directory
 
+# Clean libraries
+(cd src && ./Allwclean)
+
 # Clean applications
 (cd applications && ./Allwclean)
 

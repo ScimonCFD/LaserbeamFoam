@@ -16,8 +16,14 @@ else
     fi
 fi
 
+# Parse arguments for library compilation
+if [ -f "$WM_PROJECT_DIR"/wmake/scripts/AllwmakeParseArguments ]
+then
+    . "$WM_PROJECT_DIR"/wmake/scripts/AllwmakeParseArguments
+fi
+
 # Compile libraries
-(cd src && ./Allwmake 2>&1 | tee log.Allwmake)
+(cd src && ./Allwmake $* 2>&1 | tee log.Allwmake)
 
 # Compile applications
 (cd applications && ./Allwmake $* 2>&1 | tee log.Allwmake)
