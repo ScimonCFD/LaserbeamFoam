@@ -616,7 +616,7 @@ void laserHeatSource::updateDeposition
         label samplesPerProc = totalSamples / Pstream::nProcs();
         label remainder = totalSamples % Pstream::nProcs();
 
-        const label nProcs = Pstream::nProcs();
+        //const label nProcs = Pstream::nProcs();
         const label myRank = Pstream::myProcNo();
 
         label startIdx = myRank * samplesPerProc + min(myRank, remainder);
