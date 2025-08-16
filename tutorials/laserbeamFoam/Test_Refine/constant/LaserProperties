@@ -33,8 +33,8 @@ laserRadius 0.0005;
 
 N_sub_divisions	2;
 
-nRadial	60;
-nAngular	180;
+nRadial	30;
+nAngular	120;
 
 wavelength	1.064e-6;
 e_num_density	5.83e29;
