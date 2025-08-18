@@ -870,7 +870,7 @@ void laserHeatSource::updateDeposition
             {
                 // rayQ_[myCellId]+=0.5;
 
-                scalar iterator_distance = (0.1/pi)*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
+                scalar iterator_distance = (0.5/pi)*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
 
 
                 Rays_current_processor[i].origin_ +=
