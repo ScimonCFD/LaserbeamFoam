@@ -815,7 +815,7 @@ void laserHeatSource::updateDeposition
         {
             // Check if the ray is within the global bound box and its power is
             // greater than a small number
-            if (globalBB.contains(globalRays[i].origin_)/* || globalRays[i].power_ < 1e-6*/)
+            if (globalBB.contains(globalRays[i].origin_) || globalRays[i].power_ < 1e-6)
             {
                 const label myCellId =
                     findLocalCell
@@ -893,7 +893,7 @@ void laserHeatSource::updateDeposition
 
                 rayQ_[myCellId]+=Rays_current_processor[i].power_;
                 rayNumber_[myCellId]=Rays_current_processor[i].global_Ray_number_;
-                if(mag(nFilteredI[myCellId]) > 0.5 && alphaFilteredI[myCellId] >= dep_cutoff)
+                if(mag(nFilteredI[myCellId]) > 0.5 && alphaFilteredI[myCellId] >= dep_cutoff && Rays_current_processor[i].power_>SMALL)
                 {//NEED TO CHANGE DIRECTION BASED ON INTERFACE NORMAL
                     // if(mag(nFilteredI[myCellId]) > 0.5){//mag(n) is blowing up for some reason?!?!?!?!?!
 
@@ -1050,7 +1050,7 @@ void laserHeatSource::updateDeposition
                     else
                     {
                         deposition_[myCellId] += absorptivity*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
-                        Rays_current_processor[i].power_ *= 1.0 - absorptivity;
+                        Rays_current_processor[i].power_ *= (1.0 - absorptivity);
                         Rays_current_processor[i].direction_-=(((
                             ((2.0*Rays_current_processor[i].direction_) & nFilteredI[myCellId])
                             /(mag(nFilteredI[myCellId])*mag(nFilteredI[myCellId])
@@ -1066,20 +1066,22 @@ void laserHeatSource::updateDeposition
                     // }
 
                 }
-                else
+                else 
                 {
                     if(
                         alphaFilteredI[myCellId] > dep_cutoff
                         && mag(nFilteredI[myCellId]) < 0.5
+                         && Rays_current_processor[i].power_>SMALL//DEPOSIT HALF OF ENERGY AND SEND THE RAY BACK THE WAY IT CAME
                     )
                     {
                         Info<<"WITHIN BULK"<<endl;
 
 
-                        deposition_[myCellId] += Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
-                        Rays_current_processor[i].direction_=-Rays_current_processor[i].direction_;
-                        Rays_current_processor[i].power_*=0.0;
 
+                        deposition_[myCellId] += 0.5*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
+                        Rays_current_processor[i].direction_=-Rays_current_processor[i].direction_;
+                        Rays_current_processor[i].power_*=(1.0-0.5);
+                        // break;
                         // Philip: Set active flag to false?
                     }
                 }
