@@ -1,9 +1,9 @@
 EXE_INC = \
     -I../../../src/laserHeatSource/lnInclude \
-		-ILibraries/geometricVoF/lnInclude \
-    -ILibraries/transportModels/incompressible/transportModel/lnInclude\
-    -ILibraries/transportModels/incompressible/lnInclude\
-    -ILibraries/turbulenceModels/incompressible/turbulenceModel/lnInclude \
+    -Ilibraries/geometricVoF/lnInclude \
+    -Ilibraries/transportModels/incompressible/transportModel/lnInclude\
+    -Ilibraries/transportModels/incompressible/lnInclude\
+    -Ilibraries/turbulenceModels/incompressible/turbulenceModel/lnInclude \
     -I$(LIB_SRC)/phaseSystemModels/twoPhaseInter/incompressibleInterPhaseTransportModel/lnInclude \
     -I$(LIB_SRC)/phaseSystemModels/twoPhaseInter/VoFphaseIncompressibleTurbulenceModels/lnInclude \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
@@ -25,7 +25,7 @@ EXE_INC = \
 EXE_LIBS = \
     -lfiniteVolume \
     -L$(FOAM_USER_LIBBIN) \
-		-llaserHeatSource \
+    -llaserHeatSource \
     -lfvOptions \
     -lsurfMesh \
     -lmeshTools \

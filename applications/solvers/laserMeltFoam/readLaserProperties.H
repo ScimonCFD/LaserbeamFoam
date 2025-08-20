@@ -38,7 +38,7 @@ volScalarField em(
 
 word laserPatchName(word(LaserProperties.lookup("laserPatchName")));
 
-const dimensionedScalar r0("laserRadius",  dimensionSet(0, 1, 0, 0, 0, 0, 0) ,LaserProperties.lookup("laserRadius")); // Laser radius
+const dimensionedScalar r0("laserRadius", LaserProperties); // Laser radius
 dimensionedScalar t("t", dimensionSet(0, 0, 1, 0, 0, 0, 0), 0.0);
 dimensionedScalar Power("Power", dimensionSet(1, 2, -3, 0, 0, 0, 0), 0.0);
 dimensionedVector laserPos("laserPos", dimensionSet(0, 1, 0, 0, 0, 0, 0), vector(0.0, 0.0, 0.0));
