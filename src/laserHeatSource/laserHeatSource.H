@@ -43,150 +43,18 @@ SourceFiles
 #include "volFields.H"
 #include "dictionary.H"
 #include "interpolationTable.H"
-
-// #include <vector>
-// #include "globalIndex.H"
 #include "OFstream.H"
+#include "compactRay.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-/*---------------------------------------------------------------------------*\
+
+/*---------------------------------------------------------------------------* \
                         Class laserHeatSource Declaration
 \*---------------------------------------------------------------------------*/
 
-
-class CompactRay
-{
-    private:
-
-    public:
-
-    point origin_;
-    vector direction_;
-    scalar power_;
-    scalar remainingPower_;
-    label currentCell_;
-    label bounceCount_;
-    label global_Ray_number_;
-    bool active_;
-    DynamicList<point> path_;
-    
-    CompactRay()
-    : power_(0), remainingPower_(0), currentCell_(-1), 
-      bounceCount_(0),global_Ray_number_(-1), active_(false) {}
-      
-    CompactRay(const point& origin, const vector& dir, scalar power)
-    : origin_(origin), direction_(dir), power_(power), 
-      remainingPower_(power), currentCell_(-1), bounceCount_(0),global_Ray_number_(-1), active_(true)
-    {
-        direction_ /= mag(direction_) + VSMALL;
-        path_.clear();
-    }
-
-        // Destructor
-
-        virtual ~CompactRay()
-        {}
-
-
-    void reset(const point& origin, const vector& dir, scalar power)
-    {
-        origin_ = origin;
-        direction_ = dir / (mag(dir) + VSMALL);
-        power_ = power;
-        remainingPower_ = power;
-        currentCell_ = -1;
-        bounceCount_ = 0;
-        global_Ray_number_ = -1;
-        active_ = true;
-    }
-
-        bool operator==(const CompactRay& other) const
-    {
-        return 
-            origin_ == other.origin_ && 
-            direction_ == other.direction_ && 
-            power_ == other.power_ &&
-            global_Ray_number_ == other.global_Ray_number_;
-    }
-
-    bool operator!=(const CompactRay& other) const
-    {
-        return !(*this == other);
-    }
-
-    // Also useful for sorting/searching
-    bool operator<(const CompactRay& other) const
-    {
-        if (origin_ != other.origin_) return origin_ < other.origin_;
-        if (direction_ != other.direction_) return direction_ < other.direction_;
-        return power_ < other.power_;
-    }
-
-        friend Ostream& operator<<(Ostream& os, const CompactRay& ray)
-    {
-        return os << ray.origin_ << ray.direction_ << ray.power_ << ray.global_Ray_number_;
-    }
-    
-    friend Istream& operator>>(Istream& is, CompactRay& ray)
-    {
-        return is >> ray.origin_ >> ray.direction_ >> ray.power_ >> ray.global_Ray_number_;
-    }
-
-};
-
-
-// struct combineRayLists
-// {
-//     void operator()(DynamicList<CompactRay>& x, const DynamicList<CompactRay>& y) const
-//     {
-//         x.append(y);
-//     }
-// };
-
-
-struct combineRayLists
-{
-    void operator()(DynamicList<CompactRay>& x, const DynamicList<CompactRay>& y) const
-    {
-        // Create a hash set of existing items for O(1) lookup
-        HashSet<CompactRay> existing;
-        forAll(x, i)
-        {
-            existing.insert(x[i]);
-        }
-        
-        // Add only new items
-        forAll(y, i)
-        {
-            if (!existing.found(y[i]))
-            {
-                x.append(y[i]);
-            }
-        }
-    }
-};
-
-struct combineLists
-{
-    void operator()(DynamicList<point>& x, const DynamicList<point>& y) const
-    {
-        x.append(y);
-    }
-};
-
-struct combineRayPaths
-{
-    void operator()(DynamicList<DynamicList<point>>& x, const DynamicList<DynamicList<point>>& y) const
-    {
-        forAll(y, i)
-        {
-            x.append(y[i]);
-        }
-    }
-};
 
 class laserHeatSource
 :
@@ -243,10 +111,12 @@ class laserHeatSource
         //- Create the initial rays
         //  This involves creating a list of points (starting position of the
         //  laser rays) and their associated power (J/s)
+        //  The rayCoords and rayPowers fields should be the same on all
+        //  processors when returned from this function
         void createInitialRays
         (
-            DynamicList<vector>& initial_points,
-            DynamicList<scalar>& point_assoc_power,
+            pointField& rayCoords,
+            scalarField& rayPowers,
             const vectorField& CI,
             const vector& currentLaserPosition,
             const scalar laserRadius,
