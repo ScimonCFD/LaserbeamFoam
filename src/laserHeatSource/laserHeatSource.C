@@ -1037,7 +1037,7 @@ void laserHeatSource::updateDeposition
                     )
                     {
                         // Deposit half the energy and send it back the way it came
-                        Info<< "Withn the bulk" << endl;
+                        Info<< "Within the bulk" << endl;
 
                         deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];;
                         curRay.direction_ = -curRay.direction_;
