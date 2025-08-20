@@ -725,8 +725,7 @@ void laserHeatSource::updateDeposition
     );
 
 
-
-        scalarField pointassociatedpowers_global
+    scalarField pointassociatedpowers_global
     (
         ListListOps::combine<Field<scalar> >
         (
@@ -736,58 +735,18 @@ void laserHeatSource::updateDeposition
     );
 
 
-
-
-
-    // For each beam, store the starting point and locations at which the rays
-    // change direction. Also, store the global ordered index of the ray
-    // direction-change points
-    // PtrList<DynamicList<vector>> beamDirectionChangePoints
-    // (
-    //     pointslistGlobal1.size()
-    // );
-    // PtrList<DynamicList<int>> beamDirectionChangeOrder
-    // (
-    //     pointslistGlobal1.size()
-    // );
-
-    // // Initialise: beams will likely change direction less than 100 times
-    // forAll(beamDirectionChangePoints, rayI)
-    // {
-    //     beamDirectionChangePoints.set
-    //     (
-    //         rayI,
-    //         new DynamicList<vector>(100)
-    //     );
-    //     beamDirectionChangeOrder.set
-    //     (
-    //         rayI,
-    //         new DynamicList<int>(100)
-    //     );
-
-    //     // Add initial point
-    //     beamDirectionChangePoints[rayI].append(pointslistGlobal1[rayI]);
-    //     beamDirectionChangeOrder[rayI].append(0);
-    // }
-
-    // Store the list of cell indices where the ray tips are located; these will
-    // be used by the the findLocalSearch function when looking for the new tip
     // cell indices
     labelList rayCellIDs(pointslistGlobal1.size(), -1);
-
-
-
-
-
-
-
 
     DynamicList<CompactRay> Rays_all;
 
     forAll(pointslistGlobal1, i)
     {
 
-        CompactRay RayTemp(pointslistGlobal1[i],V_incident,pointassociatedpowers_global[i]);
+        CompactRay RayTemp
+        (
+            pointslistGlobal1[i], V_incident, pointassociatedpowers_global[i]
+        );
         RayTemp.global_Ray_number_=i;
         RayTemp.currentCell_=mesh.findCell(pointslistGlobal1[i]);
         RayTemp.path_.append(pointslistGlobal1[i]);
