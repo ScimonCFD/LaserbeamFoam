@@ -829,6 +829,12 @@ void laserHeatSource::updateDeposition
             {
                 // rayQ_[myCellId]+=0.5;
 
+                scalar iterator_distance = (0.5/pi)*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
+
+
+                Rays_current_processor[i].origin_ +=
+                    iterator_distance*Rays_current_processor[i].direction_;
+
 
                 myCellId =
                     findLocalCell(
@@ -844,8 +850,9 @@ void laserHeatSource::updateDeposition
                 // Pout<<"nfiltered: "<<nFilteredI[myCellId]<<endl;
                 // mag(nFilteredI[myCellId]);
 
-
-                if(alphaFilteredI[myCellId] >= dep_cutoff && mag(nFilteredI[myCellId]) > 0.5)
+                rayQ_[myCellId]+=Rays_current_processor[i].power_;
+                rayNumber_[myCellId]=Rays_current_processor[i].global_Ray_number_;
+                if(mag(nFilteredI[myCellId]) > 0.5 && alphaFilteredI[myCellId] >= dep_cutoff && Rays_current_processor[i].power_>SMALL)
                 {//NEED TO CHANGE DIRECTION BASED ON INTERFACE NORMAL
                     // if(mag(nFilteredI[myCellId]) > 0.5){//mag(n) is blowing up for some reason?!?!?!?!?!
 
@@ -901,7 +908,9 @@ void laserHeatSource::updateDeposition
                         argument = -1.0;
                     }
 
-                    const scalar theta_in = std::acos(argument);
+                   const scalar theta_in = std::acos(argument);
+
+                    // if (theta_in >= pi/2.0){theta_in = mag(pi-theta_in);}
 
                     const scalar alpha_laser =
                         Foam::sqrt
@@ -988,19 +997,19 @@ void laserHeatSource::updateDeposition
 
                     const scalar absorptivity = 1.0- ((R_s + R_p)/2.0);//1.0;//
 
-                    if (theta_in >= pi/2.0)
+                    if (theta_in >= pi/2.0)//dump half of energy and propogate further - once the optics is its own function we shoule work out what pi-theta returns for the absorptivity and pass this here instead of 0.5
                     {
-                        Info<<"Theta = "<<theta_in<<endl;
-                        // deposition_[myCellId] += absorptivity*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
-                        Rays_current_processor[i].power_*=0.0;
+                        // Info<<"Theta = "<<theta_in<<", absorptivity= "<<absorptivity<<", pi- theta"<<3.14159-theta_in<<endl;
+                        deposition_[myCellId] += 0.5*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
+                        Rays_current_processor[i].power_*=0.5;
                         // Rays_current_processor[i].active_==false;
                         // deposition_[myCellId] += absorptivity*Q/mesh.V()[myCellId];//yDimI[myCellId];
                     }
-                    //     // else{}
+                        // else{}
                     else
                     {
                         deposition_[myCellId] += absorptivity*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
-                        Rays_current_processor[i].power_ *= 1.0 - absorptivity;
+                        Rays_current_processor[i].power_ *= (1.0 - absorptivity);
                         Rays_current_processor[i].direction_-=(((
                             ((2.0*Rays_current_processor[i].direction_) & nFilteredI[myCellId])
                             /(mag(nFilteredI[myCellId])*mag(nFilteredI[myCellId])
@@ -1009,8 +1018,6 @@ void laserHeatSource::updateDeposition
 
                     }
 
-                    // deposition_[myCellId]=1.0;//for debugging
-
 
 
                     // WriteRayscurrentProcessor[i].path_.append(Rays_current_processor[i].origin_);
@@ -1018,29 +1025,27 @@ void laserHeatSource::updateDeposition
                     // }
 
                 }
-                else
+                else 
                 {
                     if(
                         alphaFilteredI[myCellId] > dep_cutoff
                         && mag(nFilteredI[myCellId]) < 0.5
+                         && Rays_current_processor[i].power_>SMALL//DEPOSIT HALF OF ENERGY AND SEND THE RAY BACK THE WAY IT CAME
                     )
                     {
                         Info<<"WITHIN BULK"<<endl;
 
 
-                        // deposition_[myCellId] += absorptivity*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
-                        Rays_current_processor[i].direction_=-Rays_current_processor[i].direction_;
-                        // Rays_current_processor[i].power_*=0.0;
 
+                        deposition_[myCellId] += 0.5*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
+                        Rays_current_processor[i].direction_=-Rays_current_processor[i].direction_;
+                        Rays_current_processor[i].power_*=(1.0-0.5);
+                        // break;
                         // Philip: Set active flag to false?
                     }
                 }
 
-                scalar iterator_distance = (0.25/pi)*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
 
-
-                Rays_current_processor[i].origin_ +=
-                    iterator_distance*Rays_current_processor[i].direction_;
 
 
                 Rays_current_processor[i].path_.append

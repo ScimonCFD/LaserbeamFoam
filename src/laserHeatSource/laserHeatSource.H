@@ -123,17 +123,16 @@ class CompactRay
         if (origin_ != other.origin_) return origin_ < other.origin_;
         if (direction_ != other.direction_) return direction_ < other.direction_;
         return power_ < other.power_;
-        // Adjust based on your data members and desired ordering
     }
 
         friend Ostream& operator<<(Ostream& os, const CompactRay& ray)
     {
-        return os << ray.origin_ << ray.direction_ << ray.power_;
+        return os << ray.origin_ << ray.direction_ << ray.power_ << ray.global_Ray_number_;
     }
     
     friend Istream& operator>>(Istream& is, CompactRay& ray)
     {
-        return is >> ray.origin_ >> ray.direction_ >> ray.power_;
+        return is >> ray.origin_ >> ray.direction_ >> ray.power_ >> ray.global_Ray_number_;
     }
 
 };
