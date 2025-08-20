@@ -39,9 +39,8 @@ defineTypeNameAndDebug(laserHeatSource, 0);
 
 void laserHeatSource::createInitialRays
 (
-    pointField& rayCoords,
-    scalarField& rayPowers,
-    const vectorField& CI,
+    List<compactRay>& rays,
+    const fvMesh& mesh,
     const vector& currentLaserPosition,
     const scalar laserRadius,
     const label N_sub_divisions,
@@ -152,6 +151,8 @@ void laserHeatSource::createInitialRays
     }
     else // One ray for each boundary patch face within the laser radius
     {
+        const vectorField& CI = mesh.C();
+
         forAll(CI, celli)
         {
             const scalar x_coord = CI[celli].x();
@@ -227,19 +228,36 @@ void laserHeatSource::createInitialRays
     Pstream::broadcastList(gatheredData_powers);
 
     // List of initial points
-    rayCoords =
+    pointField rayCoords
+    (
         ListListOps::combine<Field<vector> >
         (
             gatheredData,
             accessOp<Field<vector> >()
-        );
+        )
+    );
 
-    rayPowers =
+    scalarField rayPowers
+    (
         ListListOps::combine<Field<scalar> >
         (
             gatheredData_powers,
             accessOp<Field<scalar> >()
+        )
+    );
+
+    // Create a list of compactRay objects
+    rays.setSize(rayCoords.size());
+    forAll(rays, i)
+    {
+        rays[i] = compactRay
+        (
+            rayCoords[i], V_incident, rayPowers[i]
         );
+        rays[i].global_Ray_number_ = i;
+        rays[i].currentCell_ = mesh.findCell(rayCoords[i]);
+        rays[i].path_.append(rayCoords[i]);
+    }
 }
 
 
@@ -604,17 +622,25 @@ void laserHeatSource::updateDeposition
         const scalar wavelength(readScalar(dict.lookup("wavelength")));
         const scalar e_num_density(readScalar(dict.lookup("e_num_density")));
         const scalar dep_cutoff(dict.lookupOrDefault<scalar>("dep_cutoff", 0.5));
+
         const scalar Radius_Flavour
         (
             dict.lookupOrDefault<scalar>("Radius_Flavour", 2.0)
         );
+
         const Switch useLocalSearch
         (
             dict.lookupOrDefault<Switch>("useLocalSearch", true)
         );
+
         const label maxLocalSearch
         (
             dict.lookupOrDefault<label>("maxLocalSearch", 100)
+        );
+
+        const scalar rayPowerRelTol
+        (
+            dict.lookupOrDefault<scalar>("rayPowerRelTol", 1e-6)
         );
 
         updateDeposition
@@ -636,6 +662,7 @@ void laserHeatSource::updateDeposition
             Radius_Flavour,
             useLocalSearch,
             maxLocalSearch,
+            rayPowerRelTol,
             globalBB_
         );
     }
@@ -661,11 +688,13 @@ void laserHeatSource::updateDeposition
     const scalar Radius_Flavour,
     const Switch useLocalSearch,
     const label maxLocalSearch,
+    const scalar rayPowerRelTol,
     const boundBox& globalBB
 )
 {
     const fvMesh& mesh  = deposition_.mesh();
     const Time& runTime  = mesh.time();
+    const scalarField VI = mesh.V();
     const dimensionedScalar time = runTime.time();
     const scalar pi = constant::mathematical::pi;
     const dimensionedScalar a_cond
@@ -702,18 +731,15 @@ void laserHeatSource::updateDeposition
     const scalar beam_radius = a_cond.value();
 
     // Take a references for efficiency and brevity
-    const vectorField& CI = mesh.C();
     const vectorField& nFilteredI = nFiltered;
     const scalarField& alphaFilteredI = alphaFiltered;
 
-    // Create the initial rays (positions and power)
-    pointField rayCoords;
-    scalarField rayPowers;
+    // Create the initial rays
+    List<compactRay> rays;
     createInitialRays
     (
-        rayCoords,
-        rayPowers,
-        CI,
+        rays,
+        mesh,
         currentLaserPosition,
         laserRadius,
         N_sub_divisions,
@@ -725,145 +751,142 @@ void laserHeatSource::updateDeposition
         beam_radius
     );
 
-    // Create a list of compactRay objects to store information about the rays
-    labelList rayCellIDs(rayCoords.size(), -1);
-    DynamicList<compactRay> Rays_all;
-    forAll(rayCoords, i)
+    // remainingGlobalRays will store the rays that have yet to propagate out of
+    // the domain or deposit all of their power
+    DynamicList<compactRay> remainingGlobalRays(rays);
+
+    // Calculate the ray power tolerance as a fraction of the max ray power
+    // Rays with a power less than this will be ignored
+    scalar rayPowerAbsTol = 0;
     {
-        compactRay RayTemp
-        (
-            rayCoords[i], V_incident, rayPowers[i]
-        );
-        RayTemp.global_Ray_number_=i;
-        RayTemp.currentCell_=mesh.findCell(rayCoords[i]);
-        RayTemp.path_.append(rayCoords[i]);
-        Rays_all.append(RayTemp);
+        scalar maxRayPower = 0.0;
+        forAll(remainingGlobalRays, rayI)
+        {
+            maxRayPower = max(maxRayPower, remainingGlobalRays[rayI].power_);
+        }
+
+        rayPowerAbsTol = rayPowerRelTol*maxRayPower;
+
+        Info<< "Max ray power = " << maxRayPower << nl
+            << "Ray power relative tolerance = " << rayPowerRelTol << nl
+            << "Ray power absolute tolerance = " << rayPowerAbsTol << endl;
     }
 
-    // Info<<"Number of rays: "<<Rays_all.size()<<endl;
-    // Info<<"rayprint: "<<Rays_all[0].origin_<<endl;
-    // Info<<"rayprint: "<<Rays_all[1].active_<<endl;
-    // DynamicList<DynamicList<point>> WriteRays;
-    DynamicList<compactRay> globalRays = Rays_all;
-
-    while (globalRays.size() > 0)
+    // Propagate the rays through the domain
+    while (remainingGlobalRays.size() > 0)
     {
-        Info<<"Number of Rays in Domain: "<<globalRays.size()<<endl;
+        Info<< "Number of rays in domain: "<< remainingGlobalRays.size() << endl;
 
-
-        //Find all points on current processor - WANT TO TRACK ALL RAYS ON PROCESSORS AND SYNC ONCE THEY ARE ALL OFF
-        // DynamicList<DynamicList<point>> WriteRays_current_processor;
-        DynamicList<compactRay> Rays_current_processor;
-        // DynamicList<compactRay> WriteRayscurrentProcessor;
-        forAll(globalRays, i)
+        // Find all rays on the current processor
+        // localRays will store the remaining rays on this processor
+        DynamicList<compactRay> localRays;
+        forAll(remainingGlobalRays, rayI)
         {
+            // Take a reference to the current ray
+            compactRay& curRay = remainingGlobalRays[rayI];
+
             // Check if the ray is within the global bound box and its power is
-            // greater than a small number
-            if (globalBB.contains(globalRays[i].origin_) || globalRays[i].power_ < 1e-6)
+            // greater than a small fraction of the laser power
+            if 
+            (
+                globalBB.contains(curRay.origin_) || curRay.power_ < rayPowerAbsTol
+            )
             {
-                const label myCellId =
+                const label myCellID =
                     findLocalCell
                     (
-                        globalRays[i].origin_, rayCellIDs[i], mesh, maxLocalSearch, debug
+                        curRay.origin_,
+                        curRay.currentCell_,
+                        mesh,
+                        maxLocalSearch,
+                        debug
                     );
 
-                if (myCellId!=-1)
+                if (myCellID != -1)
                 {
-                    Rays_current_processor.append(globalRays[i]);
+                    localRays.append(curRay);
                 }
             }
         }
 
-        // Check the total number of active rays makes sense
-        // label nGlobalRays = 0;
-        // forAll(globalRays, i)
-        // {
-        //     if (globalRays[i].active_)
-        //     {
-        //         nGlobalRays++;
-        //     }
-        // }
-        // Info<< "nGlobalRays = " << nGlobalRays << nl
-        //     << "sum(processorRays) = "
-        //     << returnReduce(Rays_current_processor.size(), sumOp<label>())
-        //     << endl;
-
-        // Careful: we can't do this check as the globalBB may not coincide with the global geometry
-        // if (nGlobalRays != returnReduce(Rays_current_processor.size(), sumOp<label>()))
-        // {
-        //     FatalErrorInFunction
-        //         << "The sum of the processor rays is different to the number "
-        //         << "of global rays" << nl
-        //         << "globalRays.size() = " << globalRays.size() << nl
-        //         << "sum(Rays_current_processor.size()) = "
-        //             << returnReduce(Rays_current_processor.size(), sumOp<label>()) << exit(FatalError);
-        // }
-
-        // Pout<<"Rays on processir: "<<Rays_current_processor<<endl;
-        forAll(Rays_current_processor, i)// WANT TO TRACK RAYS TO BOUNDARY OF PROCESSOR OR TILL NO ENERGY
+        // Propagate the rays through the domain
+        forAll(localRays, rayI)
         {
+            // Take a reference to the current ray
+            compactRay& curRay = localRays[rayI];
 
-
-            label myCellId =
-                findLocalCell(
-                    Rays_current_processor[i].origin_, Rays_current_processor[i].currentCell_, mesh, maxLocalSearch, debug
+            // Find the cell the ray is currently in
+            label myCellID =
+                findLocalCell
+                (
+                    curRay.origin_,
+                    curRay.currentCell_,
+                    mesh,
+                    maxLocalSearch,
+                    debug
                 );
 
 
-            while (myCellId!=-1)
+            while (myCellID != -1)
             {
-                // rayQ_[myCellId]+=0.5;
+                // Calculate the iterator distance as a fraction of the cell size
+                const scalar iterator_distance =
+                    (0.5/pi)*pow(VI[myCellID], 1.0/3.0);
 
-                scalar iterator_distance = (0.5/pi)*pow(mesh.V()[myCellId], 1.0/3.0);//yDimI[myCellId];
+                // Move the ray by the iterator distance
+                curRay.origin_ += iterator_distance*curRay.direction_;
 
-
-                Rays_current_processor[i].origin_ +=
-                    iterator_distance*Rays_current_processor[i].direction_;
-
-
-                myCellId =
-                    findLocalCell(
-                        Rays_current_processor[i].origin_, Rays_current_processor[i].currentCell_, mesh, maxLocalSearch, debug
+                // Find the new cell
+                myCellID =
+                    findLocalCell
+                    (
+                        curRay.origin_,
+                        curRay.currentCell_,
+                        mesh,
+                        maxLocalSearch,
+                        debug
                     );
-                Rays_current_processor[i].currentCell_=myCellId;
 
-                if (myCellId == -1)
+                // Update the ray's cellID
+                curRay.currentCell_ = myCellID;
+
+                if (myCellID == -1)
                 {
                     break;
                 }
 
-                // Pout<<"nfiltered: "<<nFilteredI[myCellId]<<endl;
-                // mag(nFilteredI[myCellId]);
+                // Update the rayQ and rayNumber visualisation fields
+                rayQ_[myCellID] += curRay.power_;
+                rayNumber_[myCellID] = curRay.global_Ray_number_;
 
-                rayQ_[myCellId]+=Rays_current_processor[i].power_;
-                rayNumber_[myCellId]=Rays_current_processor[i].global_Ray_number_;
-                if(mag(nFilteredI[myCellId]) > 0.5 && alphaFilteredI[myCellId] >= dep_cutoff && Rays_current_processor[i].power_>SMALL)
-                {//NEED TO CHANGE DIRECTION BASED ON INTERFACE NORMAL
-                    // if(mag(nFilteredI[myCellId]) > 0.5){//mag(n) is blowing up for some reason?!?!?!?!?!
-
-
-                    //     // Info<<"detected interface"<<endl;
-
+                if
+                (
+                    mag(nFilteredI[myCellID]) > 0.5
+                 && alphaFilteredI[myCellID] >= dep_cutoff
+                 && curRay.power_ > SMALL
+                )
+                {
+                    // Interface detected
+                    // Deposit a fraction of the power and calculate the reflection
 
                     const scalar damping_frequency =
                         plasma_frequency*plasma_frequency
-                        *constant::electromagnetic::epsilon0.value()
-                        *resistivity_in[myCellId];
+                       *constant::electromagnetic::epsilon0.value()
+                       *resistivity_in[myCellID];
 
                     const scalar e_r =
                         1.0
                         - (
                             sqr(plasma_frequency)/(sqr(angular_frequency)
-                            + sqr(damping_frequency))
+                          + sqr(damping_frequency))
                         );
 
                     const scalar e_i =
                         (damping_frequency/angular_frequency)
-                        *(
-                            plasma_frequency*plasma_frequency
-                            /(
-                                angular_frequency*angular_frequency
-                                + damping_frequency*damping_frequency
+                       *(
+                            sqr(plasma_frequency)
+                           /(
+                               sqr(angular_frequency) + sqr(damping_frequency)
                             )
                         );
 
@@ -881,9 +904,9 @@ void laserHeatSource::updateDeposition
 
                     scalar argument =
                         (
-                            Rays_current_processor[i].direction_ & nFilteredI[myCellId]
-                        )/(mag(Rays_current_processor[i].direction_)*mag(nFilteredI[myCellId]));
-                    // Info<<"HERE 2"<<endl;
+                            curRay.direction_ & nFilteredI[myCellID]
+                        )/(mag(curRay.direction_)*mag(nFilteredI[myCellID]));
+
                     if (argument >= (1.0 - SMALL))
                     {
                         argument = 1.0;
@@ -895,8 +918,6 @@ void laserHeatSource::updateDeposition
 
                    const scalar theta_in = std::acos(argument);
 
-                    // if (theta_in >= pi/2.0){theta_in = mag(pi-theta_in);}
-
                     const scalar alpha_laser =
                         Foam::sqrt
                         (
@@ -905,16 +926,16 @@ void laserHeatSource::updateDeposition
                                 sqr
                                 (
                                     sqr(ref_index)
-                                    - sqr(ext_coefficient)
-                                    - sqr(Foam::sin(theta_in))
+                                  - sqr(ext_coefficient)
+                                  - sqr(Foam::sin(theta_in))
                                 )
-                                + (
+                              + (
                                     4.0*sqr(ref_index)*sqr(ext_coefficient)
                                 )
                             )
-                            + sqr(ref_index)
-                            - sqr(ext_coefficient)
-                            - sqr(Foam::sin(theta_in))/2.0
+                          + sqr(ref_index)
+                          - sqr(ext_coefficient)
+                          - sqr(Foam::sin(theta_in))/2.0
                         );
 
                     const scalar beta_laser =
@@ -926,14 +947,14 @@ void laserHeatSource::updateDeposition
                                     sqr
                                     (
                                         sqr(ref_index)
-                                        - sqr(ext_coefficient)
-                                        - sqr(Foam::sin(theta_in))
+                                      - sqr(ext_coefficient)
+                                      - sqr(Foam::sin(theta_in))
                                     )
-                                    + 4.0*sqr(ref_index)*sqr(ext_coefficient)
+                                  + 4.0*sqr(ref_index)*sqr(ext_coefficient)
                                 )
-                                - sqr(ref_index)
-                                + sqr(ext_coefficient)
-                                + sqr(Foam::sin(theta_in))
+                              - sqr(ref_index)
+                              + sqr(ext_coefficient)
+                              + sqr(Foam::sin(theta_in))
                             )/2.0
                         );
 
@@ -941,15 +962,15 @@ void laserHeatSource::updateDeposition
                         (
                             (
                                 sqr(alpha_laser)
-                                + sqr(beta_laser)
-                                - 2.0*alpha_laser*Foam::cos(theta_in)
-                                + sqr(Foam::cos(theta_in))
+                              + sqr(beta_laser)
+                              - 2.0*alpha_laser*Foam::cos(theta_in)
+                              + sqr(Foam::cos(theta_in))
                             )
                             /(
                                 sqr(alpha_laser)
-                                + sqr(beta_laser)
-                                + 2.0*alpha_laser*Foam::cos(theta_in)
-                                + sqr(Foam::cos(theta_in))
+                              + sqr(beta_laser)
+                              + 2.0*alpha_laser*Foam::cos(theta_in)
+                              + sqr(Foam::cos(theta_in))
                             )
                         );
 
@@ -958,165 +979,157 @@ void laserHeatSource::updateDeposition
                         *(
                             (
                                 sqr(alpha_laser)
-                                + sqr(beta_laser)
-                                - (
+                              + sqr(beta_laser)
+                              - (
                                     2.0*alpha_laser*Foam::sin(theta_in)
-                                    *Foam::tan(theta_in)
+                                   *Foam::tan(theta_in)
                                 )
-                                + (
+                              + (
                                     sqr(Foam::sin(theta_in))
-                                    *sqr(Foam::tan(theta_in))
+                                   *sqr(Foam::tan(theta_in))
                                 )
                             )
-                            /(
+                           /(
                                 sqr(alpha_laser)
-                                + sqr(beta_laser)
-                                + (
+                              + sqr(beta_laser)
+                              + (
                                     2.0*alpha_laser*Foam::sin(theta_in)
-                                    *Foam::tan(theta_in)
+                                   *Foam::tan(theta_in)
                                 )
-                                + sqr(Foam::sin(theta_in))*sqr(Foam::tan(theta_in))
+                              + sqr(Foam::sin(theta_in))*sqr(Foam::tan(theta_in))
                             )
                         );
 
+                    const scalar absorptivity = 1.0 - ((R_s + R_p)/2.0);
 
-                    const scalar absorptivity = 1.0- ((R_s + R_p)/2.0);//1.0;//
-
-                    if (theta_in >= pi/2.0)//dump half of energy and propogate further - once the optics is its own function we shoule work out what pi-theta returns for the absorptivity and pass this here instead of 0.5
+                    if (theta_in >= pi/2.0)
                     {
-                        // Info<<"Theta = "<<theta_in<<", absorptivity= "<<absorptivity<<", pi- theta"<<3.14159-theta_in<<endl;
-                        deposition_[myCellId] += 0.5*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
-                        Rays_current_processor[i].power_*=0.5;
-                        // Rays_current_processor[i].active_==false;
-                        // deposition_[myCellId] += absorptivity*Q/mesh.V()[myCellId];//yDimI[myCellId];
+                        // Dump half of energy and propogate further - once the
+                        // optics is its own function we shoule work out what
+                        // pi-theta returns for the absorptivity and pass this
+                        // here instead of 0.5
+                        deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];//yDimI[myCellID];
+                        curRay.power_ *= 0.5;
                     }
                     else
                     {
-                        deposition_[myCellId] += absorptivity*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
-                        Rays_current_processor[i].power_ *= (1.0 - absorptivity);
-                        Rays_current_processor[i].direction_-=(((
-                            ((2.0*Rays_current_processor[i].direction_) & nFilteredI[myCellId])
-                            /(mag(nFilteredI[myCellId])*mag(nFilteredI[myCellId])
-                            )) )*nFilteredI[myCellId]);
-
+                        deposition_[myCellID] += absorptivity*curRay.power_/VI[myCellID];
+                        curRay.power_ *= (1.0 - absorptivity);
+                        curRay.direction_ -=
+                            (
+                                (
+                                    (
+                                        (
+                                            2.0*curRay.direction_
+                                          & nFilteredI[myCellID]
+                                        )/magSqr(nFilteredI[myCellID])
+                                    )
+                                )*nFilteredI[myCellID]
+                            );
                     }
-
                 }
                 else 
                 {
                     if
                     (
-                        alphaFilteredI[myCellId] > dep_cutoff
-                     && mag(nFilteredI[myCellId]) < 0.5
-                     && Rays_current_processor[i].power_>SMALL//DEPOSIT HALF OF ENERGY AND SEND THE RAY BACK THE WAY IT CAME
+                        alphaFilteredI[myCellID] > dep_cutoff
+                     && mag(nFilteredI[myCellID]) < 0.5
+                     && curRay.power_ > SMALL
                     )
                     {
-                        Info<<"WITHIN BULK"<<endl;
+                        // Deposit half the energy and send it back the way it came
+                        Info<< "Withn the bulk" << endl;
 
-
-
-                        deposition_[myCellId] += 0.5*Rays_current_processor[i].power_/mesh.V()[myCellId];//yDimI[myCellId];
-                        Rays_current_processor[i].direction_=-Rays_current_processor[i].direction_;
-                        Rays_current_processor[i].power_*=(1.0-0.5);
-                        // break;
-                        // Philip: Set active flag to false?
+                        deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];;
+                        curRay.direction_ = -curRay.direction_;
+                        curRay.power_ *= 0.5;
                     }
                 }
 
-
-
-
-                Rays_current_processor[i].path_.append
+                // Store its path
+                curRay.path_.append
                 (
-                    Rays_current_processor[i].origin_
-                );//THINK THIS IS OVERKILL
+                    curRay.origin_
+                );
             }
-
-            // scalar Q = (Rays_current_processor[i].power_);
-            // Pout<<"current processor rays: "<<i<<"\t"<<Rays_current_processor[i]<<endl;
-
-
-            Rays_current_processor[i].path_.append(Rays_current_processor[i].origin_);//THINK THIS IS OVERKILL
         }
 
-        //NOW WANT TO SWAP ALL LISTS OF RAYS THAT HAVE LEFT ALL PROCESSORS TO SEE IFD THEY ARE ON OTHER PROCESSORS
-
-        globalRays = Rays_current_processor;//to sync
-
-        Pstream::combineGather(globalRays, combineRayLists());
-        Pstream::broadcast(globalRays);//Pstream::combineScatter(globalRays);
-
+        // Sync all remaining local rays globally so remainingGlobalRays will
+        // be the same on all processors
+        remainingGlobalRays = localRays;
+        Pstream::combineGather(remainingGlobalRays, combineRayLists());
+        Pstream::broadcast(remainingGlobalRays);
     }
 
 
-// if (runTime.outputTime())
-// {
-//     // Create a directory for the VTK files
-//     fileName vtkDir;
-//     if (Pstream::parRun())
-//     {
-//         vtkDir = runTime.path()/".."/"VTKs";
-//     }
-//     else
-//     {
-//         vtkDir = runTime.path()/"VTKs";
-//     }
+     // if (runTime.outputTime())
+     // {
+     //     // Create a directory for the VTK files
+     //     fileName vtkDir;
+     //     if (Pstream::parRun())
+     //     {
+     //         vtkDir = runTime.path()/".."/"VTKs";
+     //     }
+     //     else
+     //     {
+     //         vtkDir = runTime.path()/"VTKs";
+     //     }
 
-//     mkDir(vtkDir);
+     //     mkDir(vtkDir);
 
-//     // // Collect all ray paths from all rays
-//     DynamicList<DynamicList<point>> allRayPaths = WriteRays;
+     //     // // Collect all ray paths from all rays
+     //     DynamicList<DynamicList<point>> allRayPaths = WriteRays;
 
-//     // // Rays_all contains all the rays with their complete paths
-//     // forAll(WriteRays, rayI)
-//     // {
-//     //     // Info<<" HERE"<<endl;
-//     //     // Info<<" HERE"<<endl;
-//     //     // Info<<" HERE"<<endl;
-//     //     // Info<<" HERE"<<endl;
-//     //     // Info<<"ray path size: "<<WriteRays[rayI].path_.size()<<endl;
-//     //     // Info<<" HERE"<<endl;
-//     //     // Info<<" HERE"<<endl;
-//     //     // Info<<" HERE"<<endl;
+     //     // // rays contains all the rays with their complete paths
+     //     // forAll(WriteRays, rayI)
+     //     // {
+     //     //     // Info<<" HERE"<<endl;
+     //     //     // Info<<" HERE"<<endl;
+     //     //     // Info<<" HERE"<<endl;
+     //     //     // Info<<" HERE"<<endl;
+     //     //     // Info<<"ray path size: "<<WriteRays[rayI].path_.size()<<endl;
+     //     //     // Info<<" HERE"<<endl;
+     //     //     // Info<<" HERE"<<endl;
+     //     //     // Info<<" HERE"<<endl;
 
-//     //     if (WriteRays.size() > 1)  // Only add rays that have traveled
-//     //     {
-//     //         allRayPaths.append(WriteRays);
-//     //     }
-//     // }
+     //     //     if (WriteRays.size() > 1)  // Only add rays that have traveled
+     //     //     {
+     //     //         allRayPaths.append(WriteRays);
+     //     //     }
+     //     // }
 
-//     // Gather paths from all processors if running in parallel
-//     if (Pstream::parRun())
-//     {
-//         // Gather all paths to master processor
-//         List<DynamicList<DynamicList<point>>> gatheredPaths(Pstream::nProcs());
-//         gatheredPaths[Pstream::myProcNo()] = allRayPaths;
-//         Pstream::gatherList(gatheredPaths);
+     //     // Gather paths from all processors if running in parallel
+     //     if (Pstream::parRun())
+     //     {
+     //         // Gather all paths to master processor
+     //         List<DynamicList<DynamicList<point>>> gatheredPaths(Pstream::nProcs());
+     //         gatheredPaths[Pstream::myProcNo()] = allRayPaths;
+     //         Pstream::gatherList(gatheredPaths);
 
-//         if (Pstream::master())
-//         {
-//             // Combine all paths
-//             allRayPaths.clear();
-//             forAll(gatheredPaths, procI)
-//             {
-//                 const DynamicList<DynamicList<point>>& procPaths = gatheredPaths[procI];
-//                 forAll(procPaths, pathI)
-//                 {
-//                     allRayPaths.append(procPaths[pathI]);
-//                 }
-//             }
-//         }
-//     }
+     //         if (Pstream::master())
+     //         {
+     //             // Combine all paths
+     //             allRayPaths.clear();
+     //             forAll(gatheredPaths, procI)
+     //             {
+     //                 const DynamicList<DynamicList<point>>& procPaths = gatheredPaths[procI];
+     //                 forAll(procPaths, pathI)
+     //                 {
+     //                     allRayPaths.append(procPaths[pathI]);
+     //                 }
+     //             }
+     //         }
+     //     }
 
-//     // Write VTK file (only master processor in parallel runs)
-//     if (!Pstream::parRun() || Pstream::master())
-//     {
-//         fileName vtkFileName = vtkDir/"rays_" + laserName + "_" + Foam::name(runTime.timeIndex()) + ".vtk";
-//         writeMultipleRaysToVTK(allRayPaths, vtkFileName);
+     //     // Write VTK file (only master processor in parallel runs)
+     //     if (!Pstream::parRun() || Pstream::master())
+     //     {
+     //         fileName vtkFileName = vtkDir/"rays_" + laserName + "_" + Foam::name(runTime.timeIndex()) + ".vtk";
+     //         writeMultipleRaysToVTK(allRayPaths, vtkFileName);
 
-//         Info<< "Written " << allRayPaths.size() << " ray paths to " << vtkFileName << endl;
-//     }
-// }
+     //         Info<< "Written " << allRayPaths.size() << " ray paths to " << vtkFileName << endl;
+     //     }
+     // }
 
 
      const scalar TotalQ = fvc::domainIntegrate(deposition_).value();
