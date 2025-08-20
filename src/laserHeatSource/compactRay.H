@@ -57,15 +57,30 @@ class compactRay
 
         // Public data
 
-        point origin_;
-        vector direction_;
-        scalar power_;
-        scalar remainingPower_;
-        label currentCell_;
-        label bounceCount_;
-        label global_Ray_number_;
-        bool active_;
-        DynamicList<point> path_;
+            //- Current position
+            point position_;
+
+            //- Current direction
+            vector direction_;
+
+            //- Current power
+            scalar power_;
+
+            //- Index of the cell the ray currently occupies (or most recently occupied)
+            //  It is -1 if it is not in a local processor cell
+            label currentCell_;
+
+            //- Number of bounces
+            label bounceCount_;
+
+            //- Global index of the ray
+            label global_Ray_number_;
+
+            //- Is it active?
+            bool active_;
+
+            //- List of all locations the ray has visited
+            DynamicList<point> path_;
 
     // Public functions
 
@@ -73,7 +88,6 @@ class compactRay
         compactRay()
         :
             power_(0),
-            remainingPower_(0),
             currentCell_(-1), 
             bounceCount_(0),
             global_Ray_number_(-1),
@@ -81,12 +95,11 @@ class compactRay
         {}
 
         //- Construct from position, direction and power
-        compactRay(const point& origin, const vector& dir, scalar power)
+        compactRay(const point& position, const vector& dir, scalar power)
         :
-            origin_(origin),
+            position_(position),
             direction_(dir),
             power_(power), 
-            remainingPower_(power),
             currentCell_(-1),
             bounceCount_(0),
             global_Ray_number_(-1),
@@ -103,12 +116,11 @@ class compactRay
 
 
         //- Reset the position, direction and power
-        void reset(const point& origin, const vector& dir, scalar power)
+        void reset(const point& position, const vector& dir, scalar power)
         {
-            origin_ = origin;
+            position_ = position;
             direction_ = dir / (mag(dir) + VSMALL);
             power_ = power;
-            remainingPower_ = power;
             currentCell_ = -1;
             bounceCount_ = 0;
             global_Ray_number_ = -1;
@@ -119,7 +131,7 @@ class compactRay
         bool operator==(const compactRay& other) const
         {
             return 
-            origin_ == other.origin_ && 
+            position_ == other.position_ && 
             direction_ == other.direction_ && 
             power_ == other.power_ &&
             global_Ray_number_ == other.global_Ray_number_;
@@ -134,9 +146,9 @@ class compactRay
         // Compare
         bool operator<(const compactRay& other) const
         {
-            if (origin_ != other.origin_)
+            if (position_ != other.position_)
             {
-                return origin_ < other.origin_;
+                return position_ < other.position_;
             }
 
             if (direction_ != other.direction_)
@@ -150,7 +162,7 @@ class compactRay
         //- Output stream operator
         friend Ostream& operator<<(Ostream& os, const compactRay& ray)
         {
-            return os  << ray.origin_
+            return os  << ray.position_
                        << ray.direction_
                        << ray.power_
                        << ray.global_Ray_number_;
@@ -159,7 +171,7 @@ class compactRay
         //- Input stream operator
         friend Istream& operator>>(Istream& is, compactRay& ray)
         {
-            return is  >> ray.origin_
+            return is  >> ray.position_
                        >> ray.direction_
                        >> ray.power_
                        >> ray.global_Ray_number_;

@@ -789,13 +789,13 @@ void laserHeatSource::updateDeposition
             // greater than a small fraction of the laser power
             if 
             (
-                globalBB.contains(curRay.origin_) || curRay.power_ < rayPowerAbsTol
+                globalBB.contains(curRay.position_) || curRay.power_ < rayPowerAbsTol
             )
             {
                 const label myCellID =
                     findLocalCell
                     (
-                        curRay.origin_,
+                        curRay.position_,
                         curRay.currentCell_,
                         mesh,
                         maxLocalSearch,
@@ -819,13 +819,12 @@ void laserHeatSource::updateDeposition
             label myCellID =
                 findLocalCell
                 (
-                    curRay.origin_,
+                    curRay.position_,
                     curRay.currentCell_,
                     mesh,
                     maxLocalSearch,
                     debug
                 );
-
 
             while (myCellID != -1)
             {
@@ -834,13 +833,13 @@ void laserHeatSource::updateDeposition
                     (0.5/pi)*pow(VI[myCellID], 1.0/3.0);
 
                 // Move the ray by the iterator distance
-                curRay.origin_ += iterator_distance*curRay.direction_;
+                curRay.position_ += iterator_distance*curRay.direction_;
 
                 // Find the new cell
                 myCellID =
                     findLocalCell
                     (
-                        curRay.origin_,
+                        curRay.position_,
                         curRay.currentCell_,
                         mesh,
                         maxLocalSearch,
@@ -1046,11 +1045,8 @@ void laserHeatSource::updateDeposition
                     }
                 }
 
-                // Store its path
-                curRay.path_.append
-                (
-                    curRay.origin_
-                );
+                // Update the ray's path
+                curRay.path_.append(curRay.position_);
             }
         }
 
