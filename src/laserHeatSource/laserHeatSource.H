@@ -111,13 +111,12 @@ class laserHeatSource
         //- Create the initial rays
         //  This involves creating a list of points (starting position of the
         //  laser rays) and their associated power (J/s)
-        //  The rayCoords and rayPowers fields should be the same on all
+        //  The rays list should be the same on all
         //  processors when returned from this function
         void createInitialRays
         (
-            pointField& rayCoords,
-            scalarField& rayPowers,
-            const vectorField& CI,
+            List<compactRay>& rays,
+            const fvMesh& mesh,
             const vector& currentLaserPosition,
             const scalar laserRadius,
             const label N_sub_divisions,
@@ -216,6 +215,7 @@ public:
             const scalar Radius_Flavour,
             const Switch useLocalSearch,
             const label maxLocalSearch,
+            const scalar rayPowerRelTol,
             const boundBox& globalBB  // FOR ACCESS TO BOUNDING BOX GLOBALLY
         );
 

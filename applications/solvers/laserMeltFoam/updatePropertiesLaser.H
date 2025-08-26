@@ -32,8 +32,8 @@ laser.yDim().correctBoundaryConditions();
 // refineflag=fvc::average(alpha1);
 metalaverage = fvc::average(alphaM);
 
-laser.refineFlag() *= 0.0;
-laser.refineFlag() += metalaverage;
+// laser.refineFlag() *= 0.0;
+// laser.refineFlag() += metalaverage;
 
 alpha_filtered= alphaM;
 alpha_filtered.correctBoundaryConditions();
