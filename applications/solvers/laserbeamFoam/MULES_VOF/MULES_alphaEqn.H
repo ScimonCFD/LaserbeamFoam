@@ -98,7 +98,7 @@
 
     if (MULESCorr)
     {
-        #include "alphaSuSp.H"
+        #include "MULES_alphaSuSp.H"
 
         fvScalarMatrix alpha1Eqn
         (
@@ -157,7 +157,7 @@
 
     for (int aCorr=0; aCorr<nAlphaCorr; aCorr++)
     {
-        #include "alphaSuSp.H"
+        #include "MULES_alphaSuSp.H"
 
         surfaceScalarField phir(phic*mixture.nHatf());
 

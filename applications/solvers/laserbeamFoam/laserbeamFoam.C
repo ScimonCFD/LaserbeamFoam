@@ -48,6 +48,7 @@ Authors
 
 #include "fvCFD.H"
 #include "dynamicFvMesh.H"
+#include "isoAdvection.H"
 #include "CMULES.H"
 #include "EulerDdtScheme.H"
 #include "localEulerDdtScheme.H"
@@ -60,6 +61,7 @@ Authors
 #include "fvOptions.H"
 #include "CorrectPhi.H"
 #include "fvcSmooth.H"
+#include "dynamicRefineFvMesh.H"
 
 #include "Polynomial.H"
 #include "laserHeatSource.H"
@@ -89,11 +91,26 @@ int main(int argc, char *argv[])
     #include "initCorrectPhi.H"
     #include "createUfIfPresent.H"
 
-    if (!LTS)
+    if (interface_tracking_scheme == "MULES")
     {
-        #include "CourantNo.H"
+        if (!LTS)
+        {
+            #include "MULES_CourantNo.H"
+            #include "setInitialDeltaT.H"
+        }
+    }
+    else if (interface_tracking_scheme == "isoAdvector")
+    {
+        #include "ISOADVECTOR_porousCourantNo.H"
         #include "setInitialDeltaT.H"
     }
+    else
+    {
+        FatalErrorIn("laserbeamFoam.C")
+            << "Unknown interface tracking scheme "
+            << interface_tracking_scheme << exit(FatalError);
+    }
+
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
     Info<< "\nStarting time loop\n" << endl;
@@ -103,17 +120,26 @@ int main(int argc, char *argv[])
         #include "readControls.H"
         #include "readDyMControls.H"
 
-        if (LTS)
+        if (interface_tracking_scheme == "MULES")
         {
-            #include "setRDeltaT.H"
-        }
-        else
+            if (LTS)
+            {
+                #include "MULES_setRDeltaT.H"
+            }
+            else
+            {
+                #include "MULES_CourantNo.H"
+                #include "MULES_alphaCourantNo.H"
+                #include "MULES_setDeltaT.H"
+            }
+        } 
+        else if (interface_tracking_scheme == "isoAdvector")
         {
-            #include "CourantNo.H"
-            #include "alphaCourantNo.H"
-            #include "setDeltaT.H"
+            #include "ISOADVECTOR_porousCourantNo.H"
+            #include "ISOADVECTOR_porousAlphaCourantNo.H"
+            #include "ISOADVECTOR_setDeltaT.H"
         }
-
+        
         ++runTime;
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
@@ -121,48 +147,19 @@ int main(int argc, char *argv[])
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
         {
-            if (pimple.firstIter() || moveMeshOuterCorrectors)
+
+            if (interface_tracking_scheme == "MULES")
             {
-                mesh.update();
-
-                if (mesh.changing())
-                {
-                    // Do not apply previous time-step mesh compression flux
-                    // if the mesh topology changed
-                    if (mesh.topoChanging())
-                    {
-                        talphaPhi1Corr0.clear();
-                    }
-
-                    gh = (g & mesh.C()) - ghRef;
-                    ghf = (g & mesh.Cf()) - ghRef;
-
-                    MRF.update();
-
-                    if (correctPhi)
-                    {
-                        // Calculate absolute flux
-                        // from the mapped surface velocity
-                        phi = mesh.Sf() & Uf();
-
-                        #include "correctPhi.esi.H"
-
-                        // Make the flux relative to the mesh motion
-                        fvc::makeRelative(phi, U);
-
-                        mixture.correct();
-                    }
-
-                    if (checkMeshCourantNo)
-                    {
-                        #include "meshCourantNo.H"
-                    }
-                }
+                #include "MULES_firstIter.H"
+                #include "MULES_alphaControls.H"
+                #include "MULES_alphaEqnSubCycle.H"
+            } 
+            else if (interface_tracking_scheme == "isoAdvector")
+            {
+                #include "ISOADVECTOR_firstIter.H"
+                #include "ISOADVECTOR_alphaControls.H"
+                #include "ISOADVECTOR_alphaEqnSubCycle.H"
             }
-
-            #include "alphaControls.H"
-            #include "alphaEqnSubCycle.H"
-
 
             #include "updateProps.H"
 
@@ -171,8 +168,6 @@ int main(int argc, char *argv[])
             (
                 alpha_filtered, n_filtered, electrical_resistivity
             );
-
-
 
             mixture.correct();
 
@@ -198,14 +193,13 @@ int main(int argc, char *argv[])
 
 
         {// Check the cells that have melted
-        volScalarField alphaMetal = 
-        mesh.lookupObject<volScalarField>("alpha.metal");
-        condition = pos(alphaMetal - 0.5) * pos(epsilon1 - 0.5);
-        meltHistory += condition;
+            volScalarField alphaMetal = 
+            mesh.lookupObject<volScalarField>("alpha.metal");
+            condition = pos(alphaMetal - 0.5) * pos(epsilon1 - 0.5);
+            meltHistory += condition;
         }
 
         runTime.write();
-
         runTime.printExecutionTime(Info);
     }
 
