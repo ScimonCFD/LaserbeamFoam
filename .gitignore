@@ -9,7 +9,7 @@ tutorialsTest
 **/log.Allwmake
 
 # Solution Files
-log 
+log*
 0*
 1*
 2*
