@@ -99,7 +99,23 @@ IOdictionary transportProperties
     )
 );
 
-word interface_tracking_scheme(transportProperties.lookup("interface_tracking_scheme"));
+const word interfaceTrackingScheme
+(
+    transportProperties.lookup("interfaceTrackingScheme")
+);
+
+if
+(
+    interfaceTrackingScheme != "MULES"
+ && interfaceTrackingScheme != "isoAdvector"
+)
+{
+    FatalErrorIn("laserbeamFoam.C")
+        << "Unknown interface tracking scheme "
+        << interfaceTrackingScheme
+        << ". Available options are 'MULES' and 'isoAdvector'"
+        << exit(FatalError);
+}
 
 dictionary& transportPropertiesMetal = transportProperties.subDict("metal");
 dictionary& transportPropertiesGas = transportProperties.subDict("gas");
@@ -793,5 +809,5 @@ mesh.setFluxRequired(alpha1.name());
 #include "createFvOptions.H"
 
 
-#include "createPorosity.H"
+#include "isoAdvector/createPorosity.H"
 isoAdvection advector(alpha1, phi, U);

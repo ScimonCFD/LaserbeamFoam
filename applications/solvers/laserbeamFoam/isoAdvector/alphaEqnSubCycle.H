@@ -43,7 +43,7 @@ if (nAlphaSubCycles > 1)
         !(++alphaSubCycle).end();
     )
     {
-        #include "ISOADVECTOR_alphaEqn.H"
+        #include "alphaEqn.H"
         rhoPhiSum += (runTime.deltaT()/totalDeltaT)*rhoPhi;
     }
 
@@ -51,7 +51,7 @@ if (nAlphaSubCycles > 1)
 }
 else
 {
-    #include "ISOADVECTOR_alphaEqn.H"
+    #include "alphaEqn.H"
 }
 
 if (!pimple.firstIter())

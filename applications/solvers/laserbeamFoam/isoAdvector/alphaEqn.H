@@ -6,7 +6,7 @@
     }
 
     // Updating alpha1
-    #include "ISOADVECTOR_alphaSuSp.H"
+    #include "alphaSuSp.H"
     advector.advect(Sp, Su);
 
     // Making U absolute again after advection step

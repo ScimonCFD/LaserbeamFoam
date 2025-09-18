@@ -87,30 +87,23 @@ int main(int argc, char *argv[])
     #include "initContinuityErrs.H"
     #include "createDyMControls.H"
     #include "createFields.H"
-    #include "MULES_createAlphaFluxes.H"
+    #include "MULES/createAlphaFluxes.H"
     #include "initCorrectPhi.H"
     #include "createUfIfPresent.H"
 
-    if (interface_tracking_scheme == "MULES")
+    if (interfaceTrackingScheme == "MULES")
     {
         if (!LTS)
         {
-            #include "MULES_CourantNo.H"
+            #include "MULES/CourantNo.H"
             #include "setInitialDeltaT.H"
         }
     }
-    else if (interface_tracking_scheme == "isoAdvector")
+    else if (interfaceTrackingScheme == "isoAdvector")
     {
-        #include "ISOADVECTOR_porousCourantNo.H"
+        #include "isoAdvector/porousCourantNo.H"
         #include "setInitialDeltaT.H"
     }
-    else
-    {
-        FatalErrorIn("laserbeamFoam.C")
-            << "Unknown interface tracking scheme "
-            << interface_tracking_scheme << exit(FatalError);
-    }
-
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
     Info<< "\nStarting time loop\n" << endl;
@@ -120,24 +113,24 @@ int main(int argc, char *argv[])
         #include "readControls.H"
         #include "readDyMControls.H"
 
-        if (interface_tracking_scheme == "MULES")
+        if (interfaceTrackingScheme == "MULES")
         {
             if (LTS)
             {
-                #include "MULES_setRDeltaT.H"
+                #include "MULES/setRDeltaT.H"
             }
             else
             {
-                #include "MULES_CourantNo.H"
-                #include "MULES_alphaCourantNo.H"
-                #include "MULES_setDeltaT.H"
+                #include "MULES/CourantNo.H"
+                #include "MULES/alphaCourantNo.H"
+                #include "MULES/setDeltaT.H"
             }
         } 
-        else if (interface_tracking_scheme == "isoAdvector")
+        else if (interfaceTrackingScheme == "isoAdvector")
         {
-            #include "ISOADVECTOR_porousCourantNo.H"
-            #include "ISOADVECTOR_porousAlphaCourantNo.H"
-            #include "ISOADVECTOR_setDeltaT.H"
+            #include "isoAdvector/porousCourantNo.H"
+            #include "isoAdvector/porousAlphaCourantNo.H"
+            #include "isoAdvector/setDeltaT.H"
         }
         
         ++runTime;
@@ -148,17 +141,17 @@ int main(int argc, char *argv[])
         while (pimple.loop())
         {
 
-            if (interface_tracking_scheme == "MULES")
+            if (interfaceTrackingScheme == "MULES")
             {
-                #include "MULES_firstIter.H"
-                #include "MULES_alphaControls.H"
-                #include "MULES_alphaEqnSubCycle.H"
+                #include "MULES/firstIter.H"
+                #include "MULES/alphaControls.H"
+                #include "MULES/alphaEqnSubCycle.H"
             } 
-            else if (interface_tracking_scheme == "isoAdvector")
+            else if (interfaceTrackingScheme == "isoAdvector")
             {
-                #include "ISOADVECTOR_firstIter.H"
-                #include "ISOADVECTOR_alphaControls.H"
-                #include "ISOADVECTOR_alphaEqnSubCycle.H"
+                #include "isoAdvector/firstIter.H"
+                #include "isoAdvector/alphaControls.H"
+                #include "isoAdvector/alphaEqnSubCycle.H"
             }
 
             #include "updateProps.H"

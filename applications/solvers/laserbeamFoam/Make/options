@@ -1,6 +1,4 @@
 EXE_INC = \
-    -IMULES_VOF \
-    -IISOADVECTOR_VOF \
     -I../../../src/laserHeatSource/lnInclude \
     -I$(LIB_SRC)/phaseSystemModels/twoPhaseInter/incompressibleInterPhaseTransportModel/lnInclude \
     -I$(LIB_SRC)/phaseSystemModels/twoPhaseInter/VoFphaseIncompressibleTurbulenceModels/lnInclude \
