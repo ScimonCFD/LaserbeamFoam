@@ -9,10 +9,7 @@ then  . "$WM_PROJECT"/wmake/scripts/AllwmakeParseArguments
     optAll="-all"
 fi
 
-#wmake $optAll $targetType solvers
-wmake $* solvers/laserbeamFoam
-(cd solvers/laserMeltFoam && ./Allwmake $*)
-
+wmake $optAll $targetType solvers
 wmake $optAll $targetType utilities
 
 #------------------------------------------------------------------------------
