@@ -15,9 +15,6 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Interface tracking method: isoAdvector or MULES
-interfaceTrackingScheme isoAdvector;
-
 laserRadius 25e-6; // The radius of the laser
 
 ray_tracing_on false;
