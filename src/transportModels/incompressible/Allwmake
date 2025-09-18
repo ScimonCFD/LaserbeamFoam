@@ -4,4 +4,4 @@ cd ${0%/*} || exit 1    # run from this directory
 # Parse arguments for library compilation
 . $WM_PROJECT_DIR/wmake/scripts/AllwmakeParseArguments
 
-wmake 
+wmake libso
