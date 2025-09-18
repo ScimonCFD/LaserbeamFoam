@@ -15,9 +15,6 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Interface tracking method: isoAdvector or MULES
-interfaceTrackingScheme isoAdvector;
-
 timeVsLaserPosition
 {
     file    "$FOAM_CASE/constant/timeVsLaserPosition";

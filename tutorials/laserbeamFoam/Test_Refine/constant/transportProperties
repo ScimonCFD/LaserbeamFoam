@@ -14,17 +14,20 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+// Interface tracking method: isoAdvector or MULES
+interfaceTrackingScheme isoAdvector;
+
 phases          (metal gas);
 
 metal
 {
     transportModel  Newtonian;
-nu              5e-07;
+    nu              5e-07;
 
-rho             8000;
+    rho             8000;
 
-	Tsolidus 1658;
-	Tliquidus 1723;
+    Tsolidus 1658;
+    Tliquidus 1723;
     LatentHeat 2.7e5;
     beta    5.0e-6;
     poly_kappa   (25 0.0 0 0 0 0 0 0);
@@ -36,20 +39,18 @@ gas
 {
     transportModel  Newtonian;
 
-nu              1.48e-05;
+    nu              1.48e-05;
 
-rho             1;
+    rho             1;
 
     poly_kappa   (0.04 0 0 0 0 0 0 0);
     poly_cp   (520 0.0 0 0 0 0 0 0);
-    
+
     Tsolidus    1.0;
     Tliquidus   10.0;
     LatentHeat  1;
     beta    4.0e-5;
 }
-
-
 
 sigma            1.2;
 Marangoni_Constant	-5e-4;
