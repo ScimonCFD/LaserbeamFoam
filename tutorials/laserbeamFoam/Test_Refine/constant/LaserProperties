@@ -14,6 +14,7 @@ FoamFile
     object      PhaseFieldProperties;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
 timeVsLaserPosition
 {
     file    "$FOAM_CASE/constant/timeVsLaserPosition";

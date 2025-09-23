@@ -48,6 +48,7 @@ Authors
 
 #include "fvCFD.H"
 #include "dynamicFvMesh.H"
+#include "isoAdvection.H"
 #include "CMULES.H"
 #include "EulerDdtScheme.H"
 #include "localEulerDdtScheme.H"
@@ -60,6 +61,7 @@ Authors
 #include "fvOptions.H"
 #include "CorrectPhi.H"
 #include "fvcSmooth.H"
+#include "dynamicRefineFvMesh.H"
 
 #include "Polynomial.H"
 #include "laserHeatSource.H"
@@ -85,13 +87,21 @@ int main(int argc, char *argv[])
     #include "initContinuityErrs.H"
     #include "createDyMControls.H"
     #include "createFields.H"
-    #include "createAlphaFluxes.H"
+    #include "MULES/createAlphaFluxes.H"
     #include "initCorrectPhi.H"
     #include "createUfIfPresent.H"
 
-    if (!LTS)
+    if (interfaceTrackingScheme == "MULES")
     {
-        #include "CourantNo.H"
+        if (!LTS)
+        {
+            #include "MULES/CourantNo.H"
+            #include "setInitialDeltaT.H"
+        }
+    }
+    else if (interfaceTrackingScheme == "isoAdvector")
+    {
+        #include "isoAdvector/porousCourantNo.H"
         #include "setInitialDeltaT.H"
     }
 
@@ -103,17 +113,26 @@ int main(int argc, char *argv[])
         #include "readControls.H"
         #include "readDyMControls.H"
 
-        if (LTS)
+        if (interfaceTrackingScheme == "MULES")
         {
-            #include "setRDeltaT.H"
-        }
-        else
+            if (LTS)
+            {
+                #include "MULES/setRDeltaT.H"
+            }
+            else
+            {
+                #include "MULES/CourantNo.H"
+                #include "MULES/alphaCourantNo.H"
+                #include "MULES/setDeltaT.H"
+            }
+        } 
+        else if (interfaceTrackingScheme == "isoAdvector")
         {
-            #include "CourantNo.H"
-            #include "alphaCourantNo.H"
-            #include "setDeltaT.H"
+            #include "isoAdvector/porousCourantNo.H"
+            #include "isoAdvector/porousAlphaCourantNo.H"
+            #include "isoAdvector/setDeltaT.H"
         }
-
+        
         ++runTime;
 
         Info<< "Time = " << runTime.timeName() << nl << endl;
@@ -121,48 +140,19 @@ int main(int argc, char *argv[])
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
         {
-            if (pimple.firstIter() || moveMeshOuterCorrectors)
+
+            if (interfaceTrackingScheme == "MULES")
             {
-                mesh.update();
-
-                if (mesh.changing())
-                {
-                    // Do not apply previous time-step mesh compression flux
-                    // if the mesh topology changed
-                    if (mesh.topoChanging())
-                    {
-                        talphaPhi1Corr0.clear();
-                    }
-
-                    gh = (g & mesh.C()) - ghRef;
-                    ghf = (g & mesh.Cf()) - ghRef;
-
-                    MRF.update();
-
-                    if (correctPhi)
-                    {
-                        // Calculate absolute flux
-                        // from the mapped surface velocity
-                        phi = mesh.Sf() & Uf();
-
-                        #include "correctPhi.esi.H"
-
-                        // Make the flux relative to the mesh motion
-                        fvc::makeRelative(phi, U);
-
-                        mixture.correct();
-                    }
-
-                    if (checkMeshCourantNo)
-                    {
-                        #include "meshCourantNo.H"
-                    }
-                }
+                #include "MULES/firstIter.H"
+                #include "MULES/alphaControls.H"
+                #include "MULES/alphaEqnSubCycle.H"
+            } 
+            else if (interfaceTrackingScheme == "isoAdvector")
+            {
+                #include "isoAdvector/firstIter.H"
+                #include "isoAdvector/alphaControls.H"
+                #include "isoAdvector/alphaEqnSubCycle.H"
             }
-
-            #include "alphaControls.H"
-            #include "alphaEqnSubCycle.H"
-
 
             #include "updateProps.H"
 
@@ -171,8 +161,6 @@ int main(int argc, char *argv[])
             (
                 alpha_filtered, n_filtered, electrical_resistivity
             );
-
-
 
             mixture.correct();
 
@@ -198,14 +186,13 @@ int main(int argc, char *argv[])
 
 
         {// Check the cells that have melted
-        volScalarField alphaMetal = 
-        mesh.lookupObject<volScalarField>("alpha.metal");
-        condition = pos(alphaMetal - 0.5) * pos(epsilon1 - 0.5);
-        meltHistory += condition;
+            volScalarField alphaMetal = 
+            mesh.lookupObject<volScalarField>("alpha.metal");
+            condition = pos(alphaMetal - 0.5) * pos(epsilon1 - 0.5);
+            meltHistory += condition;
         }
 
         runTime.write();
-
         runTime.printExecutionTime(Info);
     }
 

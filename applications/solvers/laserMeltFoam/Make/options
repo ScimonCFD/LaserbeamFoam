@@ -1,9 +1,8 @@
 EXE_INC = \
     -I../../../src/laserHeatSource/lnInclude \
-    -Ilibraries/geometricVoF/lnInclude \
-    -Ilibraries/transportModels/incompressible/transportModel/lnInclude\
-    -Ilibraries/transportModels/incompressible/lnInclude\
-    -Ilibraries/turbulenceModels/incompressible/turbulenceModel/lnInclude \
+    -I../../../src/geometricVoF/lnInclude \
+    -I../../../src/transportModels/incompressible/lnInclude\
+    -I../../../src/turbulenceModel/lnInclude \
     -I$(LIB_SRC)/phaseSystemModels/twoPhaseInter/incompressibleInterPhaseTransportModel/lnInclude \
     -I$(LIB_SRC)/phaseSystemModels/twoPhaseInter/VoFphaseIncompressibleTurbulenceModels/lnInclude \
     -I$(LIB_SRC)/finiteVolume/lnInclude \
@@ -23,17 +22,17 @@ EXE_INC = \
     -I$(LIB_SRC)/transportModels/incompressible/incompressibleTwoPhaseMixture\
 
 EXE_LIBS = \
-    -lfiniteVolume \
     -L$(FOAM_USER_LIBBIN) \
+    -lgeometricVoFLMFOAM \
     -llaserHeatSource \
+    -lincompressibleTransportModelsLMFOAM \
+    -lincompressibleTurbulenceModelLMFOAM \
+    -lfiniteVolume \
     -lfvOptions \
     -lsurfMesh \
     -lmeshTools \
     -lsampling \
     -ldynamicFvMesh \
-    -lincompressibleTransportModelsLMFOAM \
-    -lincompressibleTurbulenceModelLMFOAM \
-    -lgeometricVoFLMFOAM \
     -linterfaceProperties \
     -limmiscibleIncompressibleTwoPhaseMixture \
     -lturbulenceModels \

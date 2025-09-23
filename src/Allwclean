@@ -1,6 +1,9 @@
 #!/bin/bash
 cd "${0%/*}" || exit  # Run from this directory
 
-wclean lib laserHeatSource
+wclean geometricVoF
+wclean laserHeatSource
+wclean transportModels/incompressible
+wclean turbulenceModel
 
 #------------------------------------------------------------------------------

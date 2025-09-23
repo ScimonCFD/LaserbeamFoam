@@ -2,7 +2,6 @@
 
 const dimensionedScalar deltaN = 1e-8/pow(average(mesh.V()), 1.0/3.0);
 
-
 Info<< "Reading field p_rgh\n" << endl;
 volScalarField p_rgh
 (
@@ -88,9 +87,6 @@ surfaceScalarField rhoPhi
 );
 
 
-
-
-
 IOdictionary transportProperties
 (
     IOobject
@@ -102,6 +98,24 @@ IOdictionary transportProperties
         IOobject::NO_WRITE
     )
 );
+
+const word interfaceTrackingScheme
+(
+    transportProperties.lookup("interfaceTrackingScheme")
+);
+
+if
+(
+    interfaceTrackingScheme != "MULES"
+ && interfaceTrackingScheme != "isoAdvector"
+)
+{
+    FatalErrorIn("laserbeamFoam.C")
+        << "Unknown interface tracking scheme "
+        << interfaceTrackingScheme
+        << ". Available options are 'MULES' and 'isoAdvector'"
+        << exit(FatalError);
+}
 
 dictionary& transportPropertiesMetal = transportProperties.subDict("metal");
 dictionary& transportPropertiesGas = transportProperties.subDict("gas");
@@ -712,19 +726,6 @@ volScalarField condition
 );
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef incompressibleInterPhaseTransportModel
     <
         immiscibleIncompressibleTwoPhaseMixture
@@ -745,12 +746,7 @@ autoPtr<transportModelType> turbulence
 // Create laser heat source
 laserHeatSource laser(mesh);
 
-
-
-
 #include "updateProps.H"
-
-
 
 // volScalarField depositionTemp
 // (
@@ -770,8 +766,6 @@ laserHeatSource laser(mesh);
 
 // depositionTemp=laser.deposition();
 // depositionTemp.correctBoundaryConditions();
-
-
 
 volScalarField p
 (
@@ -814,3 +808,6 @@ mesh.setFluxRequired(alpha1.name());
 #include "createMRF.H"
 #include "createFvOptions.H"
 
+
+#include "isoAdvector/createPorosity.H"
+isoAdvection advector(alpha1, phi, U);
