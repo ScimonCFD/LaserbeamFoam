@@ -17,15 +17,25 @@ if(ray_tracing_on==true){
   Info << "Using default laser model\n" <<endl;
 }
 
-interpolationTable<scalar> laserPowerSeries(LaserProperties.subDict("timeVsLaserPower"));
-interpolationTable<vector> laserPositionSeries(LaserProperties.subDict("timeVsLaserPosition"));
+interpolationTable<scalar> laserPowerSeries
+(
+    LaserProperties.subDict("timeVsLaserPower")
+);
+interpolationTable<vector> laserPositionSeries
+(
+    LaserProperties.subDict("timeVsLaserPosition")
+);
 
-const scalar kappaM(readScalar(LaserProperties.lookup("kappaM"))); // Absorptivity
+// Absorptivity
+const scalar kappaM(readScalar(LaserProperties.lookup("kappaM")));
+
 const scalar emL(readScalar(LaserProperties.lookup("emL")));
 const scalar emS(readScalar(LaserProperties.lookup("emS")));
 
-volScalarField em(
-    IOobject(
+volScalarField em
+(
+    IOobject
+    (
         "em",
         runTime.timeName(),
         mesh,
@@ -38,16 +48,22 @@ volScalarField em(
 
 word laserPatchName(word(LaserProperties.lookup("laserPatchName")));
 
-const dimensionedScalar r0("laserRadius", LaserProperties); // Laser radius
+const dimensionedScalar r0("laserRadius", dimLength, LaserProperties);
 dimensionedScalar t("t", dimensionSet(0, 0, 1, 0, 0, 0, 0), 0.0);
 dimensionedScalar Power("Power", dimensionSet(1, 2, -3, 0, 0, 0, 0), 0.0);
-dimensionedVector laserPos("laserPos", dimensionSet(0, 1, 0, 0, 0, 0, 0), vector(0.0, 0.0, 0.0));
+dimensionedVector laserPos
+(
+    "laserPos", dimLength, vector(0.0, 0.0, 0.0)
+);
 
-volScalarField px(mesh.C().component(0)); // Pointer for this, unnecessary, stays the same throughout simulation
+// Pointer for this, unnecessary, stays the same throughout simulation
+volScalarField px(mesh.C().component(0));
 volScalarField py(mesh.C().component(1));
 
-volScalarField flb(
-    IOobject(
+volScalarField flb
+(
+    IOobject
+    (
         "flb",
         runTime.timeName(),
         mesh,
@@ -56,8 +72,10 @@ volScalarField flb(
     mesh,
     dimensionedScalar("0", dimensionSet(0, 0, 0, 0, 0, 0, 0), 0.0));
 
-volScalarField delta(
-    IOobject(
+volScalarField delta
+(
+    IOobject
+    (
         "delta",
         runTime.timeName(),
         mesh,
@@ -67,19 +85,22 @@ volScalarField delta(
     dimensionedScalar("0", dimensionSet(0, 1, 0, 0, 0, 0, 0), 0.0),
     "zeroGradient");
 
-dimensionedScalar SB(
+dimensionedScalar SB
+(
     "SB",
     dimensionSet(1, 0, -3, -4, 0, 0, 0),
-    scalar(5.67e-8)); // Stefan-Boltzmann Constant
+    scalar(5.67e-8)
+); // Stefan-Boltzmann Constant
 
-volScalarField laserFlux(
-    IOobject(
+volScalarField laserFlux
+(
+    IOobject
+    (
         "laserFlux",
         runTime.timeName(),
         mesh,
         IOobject::NO_READ,
         IOobject::AUTO_WRITE),
     mesh,
-    dimensionedScalar("0", dimensionSet(1, 0, -3, 0, 0, 0, 0), 0.0));
-
-    
+    dimensionedScalar("0", dimensionSet(1, 0, -3, 0, 0, 0, 0), 0.0)
+);
