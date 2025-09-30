@@ -34,13 +34,10 @@ SourceFiles
 #ifndef compactRay_H
 #define compactRay_H
 
-#include "volFields.H"
-#include "dictionary.H"
-#include "interpolationTable.H"
+#include "point.H"
+#include "vector.H"
+#include "DynamicList.H"
 
-// #include <vector>
-// #include "globalIndex.H"
-#include "OFstream.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -74,7 +71,7 @@ class compactRay
             label bounceCount_;
 
             //- Global index of the ray
-            label global_Ray_number_;
+            label globalRayIndex_;
 
             //- Is it active?
             bool active_;
@@ -90,7 +87,7 @@ class compactRay
             power_(0),
             currentCell_(-1), 
             bounceCount_(0),
-            global_Ray_number_(-1),
+            globalRayIndex_(-1),
             active_(false)
         {}
 
@@ -102,7 +99,7 @@ class compactRay
             power_(power), 
             currentCell_(-1),
             bounceCount_(0),
-            global_Ray_number_(-1),
+            globalRayIndex_(-1),
             active_(true)
         {
             direction_ /= mag(direction_) + VSMALL;
@@ -123,7 +120,7 @@ class compactRay
             power_ = power;
             currentCell_ = -1;
             bounceCount_ = 0;
-            global_Ray_number_ = -1;
+            globalRayIndex_ = -1;
             active_ = true;
         }
 
@@ -134,7 +131,7 @@ class compactRay
             position_ == other.position_ && 
             direction_ == other.direction_ && 
             power_ == other.power_ &&
-            global_Ray_number_ == other.global_Ray_number_;
+            globalRayIndex_ == other.globalRayIndex_;
         }
 
         //- Compare
@@ -165,7 +162,7 @@ class compactRay
             return os  << ray.position_
                        << ray.direction_
                        << ray.power_
-                       << ray.global_Ray_number_;
+                       << ray.globalRayIndex_;
         }
     
         //- Input stream operator
@@ -174,7 +171,7 @@ class compactRay
             return is  >> ray.position_
                        >> ray.direction_
                        >> ray.power_
-                       >> ray.global_Ray_number_;
+                       >> ray.globalRayIndex_;
         }
 };
 
