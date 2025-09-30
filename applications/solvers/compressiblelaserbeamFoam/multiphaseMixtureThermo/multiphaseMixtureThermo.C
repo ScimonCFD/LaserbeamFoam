@@ -870,21 +870,21 @@ const volScalarField& Temperature
             // }
 
                 // Cell gradient of alpha
-        volVectorField gradAlpha =
-        alpha2*fvc::grad(alpha1) - alpha1*fvc::grad(alpha2);
+        const volVectorField gradAlpha
+        (
+            alpha2*fvc::grad(alpha1) - alpha1*fvc::grad(alpha2)
+        );
 
-        volVectorField nHatM = gradAlpha/(mag(gradAlpha) + deltaN_);
+        const volVectorField nHatM(gradAlpha/(mag(gradAlpha) + deltaN_));
 
-        volVectorField gradT = fvc::grad(Temperature);
+        const volVectorField gradT(fvc::grad(Temperature));
 
 
 
-        sMf -=dimensionedScalar("dsigmadT", dimdSigmadT_, dsigmadT())*
-                (gradT-(nHatM*(nHatM & gradT)))
-                *mag(gradAlpha);
-
- 
-
+        sMf -=
+            dimensionedScalar("dsigmadT", dimdSigmadT_, dsigmadT())
+           *(gradT-(nHatM*(nHatM & gradT)))
+           *mag(gradAlpha);
         }
     }
 
@@ -893,13 +893,12 @@ const volScalarField& Temperature
 
 
 
-Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solve(
+Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solve
+(
     volScalarField *massdotterm
 )
 {
-
-
-        tmp<volScalarField> tPCR
+    tmp<volScalarField> tPCR
     (
         new volScalarField
         (
@@ -1147,8 +1146,8 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solveAlphas
     volScalarField *massdotterm
 )
 {
-    static label nSolves(-1);
-    ++nSolves;
+    //static label nSolves(-1);
+    //++nSolves;
 
     const word alphaScheme("div(phi,alpha)");
     const word alpharScheme("div(phirb,alpha)");
@@ -1157,10 +1156,7 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solveAlphas
     // phic = min(cAlpha*phic, max(phic));
 
 
-
-
-
-               tmp<volScalarField> tPCR
+    tmp<volScalarField> tPCR
     (
         new volScalarField
         (
@@ -1182,14 +1178,10 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solveAlphas
 
     volScalarField& PCR = tPCR.ref();
 
-    *massdotterm*=0.0;
-
+    *massdotterm *= 0.0;
 
     PtrList<volScalarField> Sps(phases_.size());
     PtrList<volScalarField> Sus(phases_.size());
-
-
-
 
     volScalarField condensate
     (
@@ -1202,7 +1194,6 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solveAlphas
         mesh_,
         dimensionedScalar("condensate", dimensionSet(0, 0, 0, 0, 0), 1.0)
     );
-
 
     volScalarField alphasum
     (
@@ -1221,43 +1212,36 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solveAlphas
 
 
 
-        IOdictionary phasedictionary
+    IOdictionary phasedictionary
+    (
+        IOobject
         (
-            IOobject
-            (
-            "thermophysicalProperties",
-            mesh_.time().constant(),
-            mesh_,
-            IOobject::MUST_READ_IF_MODIFIED
-            )
-        );
+        "thermophysicalProperties",
+        mesh_.time().constant(),
+        mesh_,
+        IOobject::MUST_READ_IF_MODIFIED
+        )
+    );
 
 
 
 
-    int fluiditer=0;
+    //int fluiditer = 0;
     for (phaseModel& alpha : phases_)
     {
-
-        // Info<<"TEST"<<alpha.name()<<endl;
-
-
         std::string str2 ("vapour");
 
         std::string phasename(alpha.name());
 
-        int res =phasename.find(str2);
+        const unsigned long res = phasename.find(str2);
 
-        if((res != string::npos)||alpha.name()=="air"){
-        condensate-=alpha;
+        if (res != string::npos || alpha.name()=="air")
+        {
+            condensate -= alpha;
         }
 
-
-
-        alphasum+=alpha;
-        fluiditer++;
-
-
+        alphasum += alpha;
+        //fluiditer++;
     }
 
 
@@ -1329,7 +1313,7 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solveAlphas
         dimensionedScalar("condrate", dimensionSet(0, 0, -1, 0, 0), 0)
     );
 
-   
+
 
 
 
@@ -1421,7 +1405,7 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solveAlphas
                     (mag(phi_) + mag(phir))/mesh_.magSf()
                 );
 
-                
+
 
                 phir +=(min(cAlpha()*phic2, max(phic2))*(nHatf(alpha, alpha2)));
 
@@ -1442,14 +1426,14 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solveAlphas
 
 
             phirD-= fvc::interpolate(coefffield)*mesh_.magSf()*((fvc::interpolate(alpha2)*fvc::snGrad(alpha))-(fvc::interpolate(alpha)*fvc::snGrad(alpha2)));;
-         
 
-         
+
+
             }
 
 
 
-        dimensionedScalar maxrate( "maxrate", dimensionSet(0,0,-1,0,0,0,0), 0.5/mesh_.time().deltaT().value() );//something like rate  
+        dimensionedScalar maxrate( "maxrate", dimensionSet(0,0,-1,0,0,0,0), 0.5/mesh_.time().deltaT().value() );//something like rate
         dimensionedScalar gasconstant("gasconstant",dimensionSet(1, 2, -2, -1, -1),scalar(8.314));//1 2 -2 -1 -1 proper units
 
 
@@ -1473,7 +1457,7 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solveAlphas
                 LatentHeatGass_.find(interfacePair(alpha, alpha2))
             );
             dimensionedScalar pair_LHG("pair_LHG",dimLatentHeatGas_,LHG());
-            
+
             // Info<<"TEST_LHG"<<alpha.name()<<"\t"<<alpha2.name()<<"\t"<<pair_LHG<<endl;
 ////// iterator to look up latent heat gas of phase paire
 
@@ -1547,10 +1531,10 @@ Info<<"Liquid-Vapour State Transition: (Liquid,Vapour): ("<<alpha.name()<<","<<a
                         //NEW Compressible cond and evap rates
                         // Info<<"HERE2"<<endl;
                         // evaprate=ratedummy;//L_Lee*(alpha.thermo().rho()/alpha2.thermo().rho())*((T_-pair_boil_T)/pair_boil_T);//Lee
-                            
+
                         // condrate=ratedummy;//L_Lee*(alpha2.thermo().rho()/alpha.thermo().rho())*((pair_boil_T-T_)/pair_boil_T);//Lee
 
-                    
+
                     // alphagen=min(condrate,maxrate)*(1.0-evapcoefffield)*alpha2*(alpha2.thermo().rho()/alpha.thermo().rho());//0.1;//0.1;//*(alpha2.thermo().rho()/alpha.thermo().rho());
                     alphagen=((min(condrate,maxrate)*(1.0-evapcoefffield)*alpha2*(alpha2.thermo().rho()/alpha.thermo().rho()))-(min(evaprate,maxrate)*evapcoefffield*alpha*(alpha2.thermo().rho()/alpha.thermo().rho())));
                         // divU = -condrate*alpha2*10.0;
@@ -1601,7 +1585,7 @@ Info<<"Liquid-Vapour State Transition: (Liquid,Vapour): ("<<alpha.name()<<","<<a
                 alpha,
                 alpharScheme
             )
-            +phirD 
+            +phirD
             ;
         }
 
@@ -1690,7 +1674,7 @@ Info<<"Liquid-Vapour State Transition: (Liquid,Vapour): ("<<alpha.name()<<","<<a
             // Divergence term is handled explicitly to be
             // consistent with the explicit transport solution
             divU*min(alpha, scalar(1))
-            + 
+            +
             Sus[phasei]
             -PCR*(min(alpha, scalar(1)))//double counting divU - need to seperate out div(U) due to phase change
         );
