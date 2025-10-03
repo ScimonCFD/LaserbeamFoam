@@ -4,7 +4,7 @@
 
 ## Overview
 
-Presented here is a growing suite of solvers that describe laser-substrate
+Presented here is a growing suite of solvers that describe the laser-substrate
  interaction. This repository begins with the `laserbeamFoam` solver. Additional
  solvers are being added incrementally.
 
@@ -12,7 +12,7 @@ Currently, this repository contains two solvers:
 
 ### `laserbeamFoam`
 
-A volume-of-fluid (VOF) solver for studying high energy density laser-based
+A volume-of-fluid (VOF) solver for studying high-energy-density laser-based
 advanced manufacturing processes and laser-substrate interactions. This
 implementation treats the metallic substrate and shielding gas phase as
 in-compressible. The solver fully captures the metallic substrate's
@@ -36,9 +36,9 @@ physics and ray-tracing heat source application.
 
 ### `multiComponentlaserbeamFoam`
 
-An extension of the laserbeamfoam solver to multi-component metallic
-substrates. This solver can simulate M-Component metallic substrates in the
-presence of gas-phases. Diffusion is treated through a Fickian diffusion model
+An extension of the `laserbeamfoam` solver to multi-component metallic
+substrates. This solver can simulate M-component metallic substrates in the
+presence of gas phases. Diffusion is treated through a Fickian diffusion model
 with the diffusivity specified through 'diffusion pairs', and the interface
 compression is again specified pair-wise. The miscible phases in the simulation
 should have diffusivity specified between them, and immiscible phase pairs
@@ -53,18 +53,14 @@ Target applications for the solvers included in this repository include:
 
 ## Installation
 
-The current version of the code utilises the
-[OpenFOAM-10 libraries](https://openfoam.org/version/10/). A branch that
-compiles against the older OpenFOAM-6 libraries is provided. The code has been
-developed and tested using an Ubuntu installation but should work on any
-operating system capable of installing OpenFOAM. To install the laserbeamFoam
-solvers, first, install and load
-[OpenFOAM-10](https://openfoam.org/download/10-ubuntu/), then clone and build
-the laserbeamFoam library:
+The `main` branch compiles with OpenFOAM-10, while the `OF2506` branch compiles
+ with OpenFOAM-v2506. To install the `laserbeamFoam` solvers, first, install and
+ load a compatible version of OpenFOAM, then clone and build the `laserbeamFoam`
+ library:
 
 ```bash
-git clone https://github.com/micmog/laserbeamFoam.git laserbeamFoam
-./Allwmake -j
+https://github.com/laserbeamfoam/LaserbeamFoam.git
+cd LaserbeamFoam && ./Allwmake -j
 ```
 
 where the `-j` option uses all CPU cores available for building.
@@ -165,9 +161,9 @@ Cases can be cleaned and reset using the included `Allclean` scripts, i.e.
 ### 2D Plate
 
 In these cases, the penetration rate of an incident laser source is investigated
- based on the angle of incidence of the laser beam. Two cases are presented
- where the beam is perpendicular to the substrate or 45 degrees to the initial
- plate normal.
+ based on the angle of incidence of the laser beam. Two lasers are present in
+ the case: one is perpendicular to the substrate, and one is at 45 degrees to
+ the initial plate normal.
 
 ### 3D Plate
 
@@ -175,7 +171,7 @@ In this case, the two-dimensional 45-degree example is extended to three dimensi
 
 ### 2D Circular Particles
 
-In this example, a series of circular metallic regions are seeded on top of a
+In this example, a series of circular metallic regions is seeded on top of a
  planar substrate. The laser heat source traverses the domain and melts these
  regions, and their topology evolves accordingly.
 
@@ -199,7 +195,7 @@ Initially, the solver loads the mesh, reads in fields and boundary conditions,
  solutions of hyperbolic convective transport equations with defined bounds (0
  and 1 for $α_1$). Once the updated phase field is obtained, the program enters
  the pressure–velocity loop, where p and u are corrected alternatingly. $T$ is
- also solved in this loop so that the buoyancy predictions are correct for the
+ also solved in this loop, so that the buoyancy predictions are correct for the
  $U$ and $p$ fields. Correcting the pressure and velocity fields in the sequence
  is known as pressure implicit with the splitting of operators (PISO). In the
  OpenFOAM environment, PISO is repeated for multiple iterations at each time
@@ -249,14 +245,21 @@ There are no constraints on how the computational domain is discretised.
 
 ## Visualising the rays in ParaView
 
-`laserbeamFoam` writes the individual ray beams to `VTK/rays_<TIME_INDEX>.vtk`,
- where `<TIME_INDEX>` is the time-step index, i.e. 1, 2, 3, etc. ParaView
- recognises that these files are in a sequence, so they can all be loaded
- together: `File` -> `Open...` -> Select `rays_..vtk`. As the VTK files do not
- store time-step information, by default, ParaView assumes the time-step size
- for the rays is 1 s; however, you can use the ParaView “Temporal Shift Scale”
- filter on the rays object to sync the ray time with the OpenFOAM model time,
- where the OpenFOAM time-step value (e.g. 1e-5) is used as the `Scale`.
+`laserbeamFoam` writes the individual ray beams to `VTK/rays_<LASER_NAME>_<TIME>.vtk`,
+ where `<LASER_NAME>` is the laser's name within the `laser` sub-dict of `constant/LaserProperties`
+ and `<TIME>` is the time value. ParaView recognises that these files are in a
+ sequence, so they can all be loaded together: `File` -> `Open...` -> Select
+ `rays_..vtk`. As the VTK files do not store time-step information, by default,
+ ParaView assumes the time-step size for the rays is 1 s; however, you can use
+ the ParaView “Temporal Shift Scale” filter on the rays object to sync the ray
+ time with the OpenFOAM model time, where the OpenFOAM time-step value (e.g.
+ 1e-5) is used as the `Scale`. For convenience, a `VTK/rays_<LASER_NAME>.vtk.series`
+ files is written at the end of the simulation. This `.vtk.series` file can be
+ opened directly in ParaView, which loads the VTK files at the correct physical
+ times (no need for the “Temporal Shift Scale” filter). Once the ray VTKs are
+ loaded, they can be viewed by setting their colour appropriately (e.g. to
+ black); in addition, it is often convenient to increase the "Line Width" or
+ use the "Tube" filter.
 
 ## License
 
