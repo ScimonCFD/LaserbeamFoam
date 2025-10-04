@@ -184,17 +184,25 @@ int main(int argc, char *argv[])
             }
         }
 
-
-        {// Check the cells that have melted
-            volScalarField alphaMetal = 
+        // Update the melt history
+        const volScalarField& alphaMetal = 
             mesh.lookupObject<volScalarField>("alpha.metal");
-            condition = pos(alphaMetal - 0.5) * pos(epsilon1 - 0.5);
-            meltHistory += condition;
-        }
+        condition = pos(alphaMetal - 0.5) * pos(epsilon1 - 0.5);
+        meltHistory += condition;
 
         runTime.write();
+
+        // Write ray paths to VTK files
+        if (runTime.outputTime())
+        {
+            laser.writeRayPathsToVTK();
+        }
+
         runTime.printExecutionTime(Info);
     }
+
+    // Write a VTK series file for easy-opening of the ray files
+    laser.writeRayPathVTKSeriesFile();
 
     Info<< "End\n" << endl;
 

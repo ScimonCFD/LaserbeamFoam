@@ -141,7 +141,20 @@
     // - only increase at a fraction of old time scale
     if (rDeltaT0_damped)
     {
-        rDeltaT.clamp_min(rDeltaT0_damped());
+        // clamp_min is only defined for a field from v2506
+        // For backwards compatibility, we will perform the calculations
+        // manually
+        //rDeltaT.clamp_min(rDeltaT0_damped());
+        scalarField& rDeltaTI = rDeltaT;
+        std::transform
+        (
+            rDeltaTI.begin(),
+            rDeltaTI.begin(rDeltaT0_damped().size()),
+            rDeltaT0_damped().begin(),
+            rDeltaTI.begin(),
+            maxOp<scalar>()
+        );
+        rDeltaT.correctBoundaryConditions();
 
         auto limits = gMinMax(rDeltaT.primitiveField());
         limits.reset(1/(limits.max()+VSMALL), 1/(limits.min()+VSMALL));

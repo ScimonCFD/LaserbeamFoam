@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 
     turbulence->validate();
 
-    #include "Update.H"
+    #include "update.H"
 
 
     #include "CourantNo.H"
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
                         // from the mapped surface velocity
                         phi = mesh.Sf() & Uf();
 
-                        #include "correctPhi.H"
+                        #include "correctPhi.esi.H"
 
                         // Make the flux relative to the mesh motion
                         fvc::makeRelative(phi, U);
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 
             // rho=mixture.rho();
 
-            #include "Update.H"
+            #include "update.H"
 
             // Update the laser deposition field
             laser.updateDeposition
