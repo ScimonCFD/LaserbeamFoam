@@ -224,7 +224,14 @@ int main(int argc, char *argv[])
 
         solidificationTime.correctBoundaryConditions();
         gradTSol.correctBoundaryConditions();
+        
         runTime.write();
+
+        // Write ray paths to VTK files
+        if (runTime.outputTime())
+        {
+            laser.writeRayPathsToVTK();
+        }
 
         Info << "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
         << "  ClockTime = " << runTime.elapsedClockTime() << " s"
@@ -256,6 +263,8 @@ int main(int argc, char *argv[])
 
 
     }
+
+    laser.writeRayPathVTKSeriesFile();
 
     Info<< "End\n" << endl;
 

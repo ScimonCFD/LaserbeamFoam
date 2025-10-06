@@ -53,7 +53,7 @@ gas
 // Phase change properties
 
 sigma                       1.2;
-Marangoni_constant	        -0.1e-4;
+Marangoni_Constant	        -0.1e-4;
 p0		                    100000.0;
 Tvap                        3068.0;
 Mm                          5.58e-2;

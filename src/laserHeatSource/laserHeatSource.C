@@ -457,6 +457,7 @@ laserHeatSource::laserHeatSource
     {
         // There is no lists of lasers, just one
 
+        rayPaths_.setSize(1);
         laserNames_.setSize(1);
         laserDicts_.setSize(1);
         timeVsLaserPosition_.setSize(1);
