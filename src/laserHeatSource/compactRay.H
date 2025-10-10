@@ -137,8 +137,6 @@ class compactRay
         //- Output stream operator
         friend Ostream& operator<<(Ostream& os, const compactRay& ray)
         {
-            Warning
-                << __LINE__ << endl;
             return os  << ray.position_
                        << ray.direction_
                        << ray.power_
@@ -152,8 +150,6 @@ class compactRay
         //- Input stream operator
         friend Istream& operator>>(Istream& is, compactRay& ray)
         {
-            Warning
-                << __LINE__ << endl;
             return is  >> ray.position_
                        >> ray.direction_
                        >> ray.power_
