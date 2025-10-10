@@ -810,7 +810,7 @@ void laserHeatSource::updateDeposition
             if 
             (
                 globalBB.contains(curRay.position_)
-             || curRay.power_ < rayPowerAbsTol
+             && curRay.power_ > rayPowerAbsTol
             )
             {
                 const label myCellID =

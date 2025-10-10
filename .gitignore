@@ -65,6 +65,9 @@ lnInclude
 # A hidden file created by the Mac OS X Finder.
 .DS_Store
 
+# VScode files
+.vscode
+
 # build folders - anywhere
 linux*Gcc*/
 linux*Icc*/
