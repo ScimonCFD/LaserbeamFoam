@@ -15,9 +15,11 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+radialPolarHeatSource no;
+
 laserRadius 25e-6; // The radius of the laser
 
-ray_tracing_on false;
+ray_tracing_on true;
 
 timeVsLaserPosition
 {
@@ -34,8 +36,8 @@ timeVsLaserPower
 // ----------------------------------------------------------------------
 // Standard laser model parameters 
 kappaM		  0.3;
-emS	        0.4;
-emL	        0.1;
+emS	          0.4;
+emL	          0.1;
 laserPatchName	  topWall;
 
 // ----------------------------------------------------------------------
@@ -45,7 +47,7 @@ V_incident (0 1 0);//(0 1 0);// Laser angle - NORMALISED IN CODE
 wavelength	1.064e-6;
 e_num_density	5.83e29;
 debug no;
-Radius_Flavour	2.0;
+// Radius_Flavour	2.0;
 
 // Laser radius
 //HS_bg 0.0;//20
