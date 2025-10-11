@@ -220,13 +220,36 @@ const dimensionedScalar R
         8.314
 );
 
+volScalarField em
+(
+    IOobject
+    (
+        "em",                       
+        runTime.timeName(),         
+        mesh,                       
+        IOobject::NO_READ,          
+        IOobject::NO_WRITE          
+    ),
+    mesh,
+    dimensionedScalar("zero", dimensionSet(0, 0, 0, 0, 0, 0, 0), 0.0) // Field initialized to 0 everywhere
+);
+
+const dimensionedScalar SB
+(
+    "SB",
+    dimensionSet(1, 0, -3, -4, 0, 0, 0),
+    scalar(5.67e-8)
+); // Stefan-Boltzmann Constant
+
+const scalar emL(readScalar(transportProperties.lookup("emL")));
+const scalar emS(readScalar(transportProperties.lookup("emS")));
+const dimensionedScalar TRef ("TRef",transportProperties);
 
 const Polynomial<8> polykappa_m(transportPropertiesMetal.lookup("poly_kappa"));
 const Polynomial<8> polykappa_g(transportPropertiesGas.lookup("poly_kappa"));
 
 const Polynomial<8> polycp_m(transportPropertiesMetal.lookup("poly_cp"));
 const Polynomial<8> polycp_g(transportPropertiesGas.lookup("poly_cp"));
-
 
 
 // Info<<"TEST: "<<polykappa_m<<endl;
