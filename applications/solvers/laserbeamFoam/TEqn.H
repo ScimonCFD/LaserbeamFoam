@@ -52,7 +52,7 @@
             thermalDamper.correctBoundaryConditions();
         }
 
-        volScalarField gradAlphaDamper (mag(fvc::grad(alpha1))*thermalDamper);
+        volScalarField gradAlphaDamper (mag(gradAlpha)*thermalDamper);
         
         fvScalarMatrix TEqn
         (
