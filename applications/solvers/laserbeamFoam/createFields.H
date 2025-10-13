@@ -231,7 +231,7 @@ volScalarField em
         IOobject::NO_WRITE          
     ),
     mesh,
-    dimensionedScalar("zero", dimensionSet(0, 0, 0, 0, 0, 0, 0), 0.0) // Field initialized to 0 everywhere
+    dimensionedScalar("zero", dimless, 0.0) 
 );
 
 const dimensionedScalar SB
@@ -251,10 +251,6 @@ const Polynomial<8> polykappa_g(transportPropertiesGas.lookup("poly_kappa"));
 const Polynomial<8> polycp_m(transportPropertiesMetal.lookup("poly_cp"));
 const Polynomial<8> polycp_g(transportPropertiesGas.lookup("poly_cp"));
 
-
-// Info<<"TEST: "<<polykappa_m<<endl;
-
-// exit(0);
 volScalarField cp
 (
     IOobject
