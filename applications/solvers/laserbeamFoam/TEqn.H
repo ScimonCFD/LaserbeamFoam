@@ -34,7 +34,7 @@
         const volScalarField Qrad_expl (SB*em*(Foam::pow(TRef,4) + 3*Foam::pow(T,4)));
         const volScalarField Qrad_inpl (-(4*SB*em*Foam::pow(T,3)));
 
-        if(damperSwitch)
+        if (damperSwitch)
         {
             scalarField& thermalDamperI = thermalDamper;
             const scalarField& rhoCpI = rhoCp;
