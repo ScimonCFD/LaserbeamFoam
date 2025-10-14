@@ -152,15 +152,27 @@ int main(int argc, char *argv[])
                 }
             }
 
+            volScalarField rhoOld = rho;
+
 
             vDot = mixture.solve(&mass_dot);
             vDot.correctBoundaryConditions();
 
             mass_dot.correctBoundaryConditions();
 
-            solve(fvm::ddt(rho) + fvc::div(mixture.rhoPhi()));
+            // solve(fvm::ddt(rho) + fvc::div(mixture.rhoPhi()));
 
-            // rho=mixture.rho();
+            rho=mixture.rho();
+
+
+            scalar totalMass = fvc::domainIntegrate(rho).value();
+            scalar massChange = totalMass - fvc::domainIntegrate(rhoOld).value();
+
+            Info <<"totalMass: \t"<<totalMass<<endl;
+            
+            Info <<"massChange: \t"<<massChange<<endl;
+
+
 
             #include "update.H"
 
@@ -172,7 +184,7 @@ int main(int argc, char *argv[])
 
 
             #include "UEqn.H"
-            #include "TEqn.H"
+            // #include "TEqn.H"
 
             // --- Pressure corrector loop
             while (pimple.correct())

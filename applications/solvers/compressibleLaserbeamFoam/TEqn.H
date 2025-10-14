@@ -57,7 +57,7 @@ TRHS.correctBoundaryConditions();
         // // fvModels.source(rho, T)
           mixture.rCv()*laser.deposition()
         - mixture.rCv()*TRHS
-        -mass_dot
+        -mixture.rCv()*mass_dot
     );
 
     TEqn.relax();

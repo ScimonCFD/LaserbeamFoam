@@ -85,21 +85,35 @@ autoPtr<compressible::turbulenceModel> turbulence
 
     
 
-        volScalarField mass_dot //
-    (
-        IOobject
-        (
-            "mass_dot",
-            runTime.timeName(),
-            mesh,
-            IOobject::READ_IF_PRESENT,
-            IOobject::AUTO_WRITE
-        ),
-        mesh,
-        dimensionedScalar("mass_dot", dimensionSet(1, -3, -1, 1, 0), 0.0)
-    //    dimensionedScalar("mass_dot",dimensionSet(1,-1,-3,0,0),0.0)
-    );
+    //     volScalarField mass_dot //
+    // (
+    //     IOobject
+    //     (
+    //         "mass_dot",
+    //         runTime.timeName(),
+    //         mesh,
+    //         IOobject::READ_IF_PRESENT,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     mesh,
+    //     dimensionedScalar("mass_dot", dimensionSet(1, -3, -1, 1, 0), 0.0)
+    // //    dimensionedScalar("mass_dot",dimensionSet(1,-1,-3,0,0),0.0)
+    // );
 
+
+    volScalarField mass_dot
+(
+    IOobject
+    (
+        "mass_dot",
+        runTime.timeName(),
+        mesh,
+        IOobject::READ_IF_PRESENT,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("mass_dot", dimensionSet(1, -1, -3, 0, 0), 0.0)  // Energy source [W/m³]
+);
 
      volScalarField alphasum
     (
