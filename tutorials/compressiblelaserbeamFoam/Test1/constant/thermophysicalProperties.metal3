@@ -42,7 +42,7 @@ mixture
     equationOfState
     {
         p0	1e5;
-        rho0         5000;
+        rho0         50;
         gamma	1.2;
         B	1e7;
     }
