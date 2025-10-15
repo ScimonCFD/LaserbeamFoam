@@ -121,6 +121,20 @@ Foam::multiphaseMixtureThermo::multiphaseMixtureThermo
     (
         "deltaN",
         1e-8/cbrt(average(mesh_.V()))
+    ),
+    phaseChangeSources_(0),
+    vDotPhaseChange_
+    (
+        IOobject
+        (
+            "vDotPhaseChange",
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh_,
+        dimensionedScalar(dimless/dimTime, Zero)
     )
 {
     rhoPhi_.setOriented();
@@ -971,6 +985,25 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solve
     
 
 
+
+        if (phaseChangeSources_.size() != phases_.size())
+    {
+        phaseChangeSources_.resize(phases_.size());
+    }
+    
+    // Calculate and STORE sources
+    calculatePhaseChangeSources
+    (
+        phaseChangeSources_,
+        vDotPhaseChange_,
+        massdotterm,
+        outerDeltaT
+    );
+
+
+
+    
+
     if (nAlphaSubCycles > 1)
     {
         surfaceScalarField rhoPhiSum(0.0*rhoPhi_);
@@ -1052,7 +1085,7 @@ void Foam::multiphaseMixtureThermo::calculatePhaseChangeSources
     dimensionedScalar gasconstant("gasconstant", dimensionSet(1, 2, -2, -1, -1), 8.314);
     
     
-    dimensionedScalar maxrate("maxrate", dimless/dimTime, 0.5/deltaT.value());
+    dimensionedScalar maxrate("maxrate", dimless/dimTime, 0.05/deltaT.value());
 
     // Initialize source storage
     label phasei = 0;
@@ -1420,131 +1453,135 @@ void Foam::multiphaseMixtureThermo::solveAlphasWithSources
     }
 
 
-    phasei = 0;
-    for (phaseModel& alpha1 : phases_)
-    {
-        surfaceScalarField& alphaPhiCorr = alphaPhiCorrs[phasei];
+    // phasei = 0;
+    // for (phaseModel& alpha1 : phases_)
+    // {
+    //     surfaceScalarField& alphaPhiCorr = alphaPhiCorrs[phasei];
         
-        for (const phaseModel& alpha2 : phases_)
-        {
-            if (&alpha2 == &alpha1) continue;
+    //     for (const phaseModel& alpha2 : phases_)
+    //     {
+    //         if (&alpha2 == &alpha1) continue;
             
-            scalarCoeffSymmCTable::const_iterator cAlpha = 
-                cAlphas_.find(interfacePair(alpha1, alpha2));
+    //         scalarCoeffSymmCTable::const_iterator cAlpha = 
+    //             cAlphas_.find(interfacePair(alpha1, alpha2));
             
-            if (cAlpha != cAlphas_.end() && cAlpha() > 0)
-            {
-                surfaceScalarField phic = mag(phi_)/mesh_.magSf();
-                surfaceScalarField phir = 
-                    min(cAlpha()*phic, max(phic))*nHatf(alpha1, alpha2);
+    //         if (cAlpha != cAlphas_.end() && cAlpha() > 0)
+    //         {
+    //             surfaceScalarField phic = mag(phi_)/mesh_.magSf();
+    //             surfaceScalarField phir = 
+    //                 min(cAlpha()*phic, max(phic))*nHatf(alpha1, alpha2);
                 
-                alphaPhiCorr += fvc::flux
-                (
-                    -fvc::flux(-phir, alpha2, alpharScheme),
-                    alpha1,
-                    alpharScheme
-                );
-            }
-        }
-        ++phasei;
-    }
+    //             alphaPhiCorr += fvc::flux
+    //             (
+    //                 -fvc::flux(-phir, alpha2, alpharScheme),
+    //                 alpha1,
+    //                 alpharScheme
+    //             );
+    //         }
+    //     }
+    //     ++phasei;
+    // }
 
 
-    HashTable<bool> processedDiffusionPairs;
+    // HashTable<bool> processedDiffusionPairs;
 
-    for (phaseModel& alpha1 : phases_)
-    {
-        label idx1 = phaseIndex[alpha1.name()];
+    // for (phaseModel& alpha1 : phases_)
+    // {
+    //     label idx1 = phaseIndex[alpha1.name()];
         
-        for (phaseModel& alpha2 : phases_)
-        {
-            if (&alpha2 == &alpha1) continue;
+    //     for (phaseModel& alpha2 : phases_)
+    //     {
+    //         if (&alpha2 == &alpha1) continue;
             
-            label idx2 = phaseIndex[alpha2.name()];
+    //         label idx2 = phaseIndex[alpha2.name()];
             
-            word pairName;
-            if (alpha1.name() < alpha2.name())
-            {
-                pairName = alpha1.name() + "_" + alpha2.name();
-            }
-            else
-            {
-                pairName = alpha2.name() + "_" + alpha1.name();
-            }
+    //         word pairName;
+    //         if (alpha1.name() < alpha2.name())
+    //         {
+    //             pairName = alpha1.name() + "_" + alpha2.name();
+    //         }
+    //         else
+    //         {
+    //             pairName = alpha2.name() + "_" + alpha1.name();
+    //         }
             
-            if (processedDiffusionPairs.found(pairName)) continue;
-            processedDiffusionPairs.insert(pairName, true);
+    //         if (processedDiffusionPairs.found(pairName)) continue;
+    //         processedDiffusionPairs.insert(pairName, true);
             
-            scalarCoeffSymmDTable::const_iterator dAlpha = 
-                dAlphas_.find(interfacePair(alpha1, alpha2));
+    //         scalarCoeffSymmDTable::const_iterator dAlpha = 
+    //             dAlphas_.find(interfacePair(alpha1, alpha2));
             
-            if (dAlpha != dAlphas_.end() && dAlpha() > 0)
-            {
-                dimensionedScalar valdiff("valdiff", dimdiff_, dAlpha());
+    //         if (dAlpha != dAlphas_.end() && dAlpha() > 0)
+    //         {
+    //             dimensionedScalar valdiff("valdiff", dimdiff_, dAlpha());
                 
-                const volScalarField& rho1 = alpha1.thermo().rho();
-                const volScalarField& rho2 = alpha2.thermo().rho();
+    //             const volScalarField& rho1 = alpha1.thermo().rho();
+    //             const volScalarField& rho2 = alpha2.thermo().rho();
                 
-                surfaceScalarField rho1f = fvc::interpolate(rho1);
-                surfaceScalarField rho2f = fvc::interpolate(rho2);
+    //             surfaceScalarField rho1f = fvc::interpolate(rho1);
+    //             surfaceScalarField rho2f = fvc::interpolate(rho2);
                 
-                dimensionedScalar rhoSmall("rhoSmall", dimDensity, VSMALL);
+    //             dimensionedScalar rhoSmall("rhoSmall", dimDensity, VSMALL);
                 
-                surfaceScalarField rhoHarmonic = 
-                    2.0*rho1f*rho2f/max(rho1f + rho2f, rhoSmall);
+    //             surfaceScalarField rhoHarmonic = 
+    //                 2.0*rho1f*rho2f/max(rho1f + rho2f, rhoSmall);
                 
-                surfaceScalarField massFlux = 
-                    -valdiff*mesh_.magSf()*rhoHarmonic*fvc::snGrad(alpha1);
+    //             surfaceScalarField massFlux = 
+    //                 -valdiff*mesh_.magSf()*rhoHarmonic*fvc::snGrad(alpha1);
                 
-                surfaceScalarField volFlux1 = massFlux/max(rho1f, rhoSmall);
-                surfaceScalarField volFlux2 = massFlux/max(rho2f, rhoSmall);
+    //             surfaceScalarField volFlux1 = massFlux/max(rho1f, rhoSmall);
+    //             surfaceScalarField volFlux2 = massFlux/max(rho2f, rhoSmall);
                 
-                alphaPhiCorrs[idx1] -= volFlux1;
-                alphaPhiCorrs[idx2] += volFlux2;
+    //             alphaPhiCorrs[idx1] -= volFlux1;
+    //             alphaPhiCorrs[idx2] += volFlux2;
                 
-                // Add diffusion-induced dilation to vDot - check this - does this make sense?!?!?!
-                volScalarField massFluxVol = fvc::surfaceIntegrate(massFlux);
-                vDot += massFluxVol*(1.0/rho2 - 1.0/rho1);
-            }
-        }
-    }
+    //             // Add diffusion-induced dilation to vDot - check this - does this make sense?!?!?!
+    //             volScalarField massFluxVol = fvc::surfaceIntegrate(massFlux);
+    //             vDot += massFluxVol*(1.0/rho2 - 1.0/rho1);
+    //         }
+    //     }
+    // }
 
+
+
+    
 
     // MULES limiting on CORRECTIONS - not on total as this is incorrect I think - need to run by Philip!
 
     volScalarField divU = fvc::div(fvc::absolute(phi_, U_));
 
-    phasei = 0;
-    for (phaseModel& alpha : phases_)
-    {
-        const volScalarField& alphaSource = phaseChangeSources[phasei];
-        surfaceScalarField& alphaPhiCorr = alphaPhiCorrs[phasei];
-        
-        volScalarField Sp
-        (
-            IOobject("Sp", mesh_.time().timeName(), mesh_),
-            mesh_,
-            dimensionedScalar("zero", dimless/dimTime, 0.0)
-        );
-        
-        volScalarField Su = alphaSource;
-        
-        MULES::limit
-        (
-            1.0/mesh_.time().deltaT().value(),
-            geometricOneField(),
-            alpha,
-            phi_,
-            alphaPhiCorr,
-            Sp,
-            Su,
-            oneField(),
-            zeroField(),
-            true
-        );
-        
-        ++phasei;
-    }
+phasei = 0;
+for (phaseModel& alpha : phases_)
+{
+    const volScalarField& alphaSource = phaseChangeSources[phasei];
+    surfaceScalarField& alphaPhiCorr = alphaPhiCorrs[phasei];
+    
+    volScalarField Sp
+    (
+        IOobject("Sp", mesh_.time().timeName(), mesh_),
+        mesh_,
+        dimensionedScalar("zero", dimless/dimTime, 0.0)
+    );
+    
+    volScalarField Su = alphaSource;  // Explicit source
+    
+    // CRITICAL: Let MULES see the sources so it can limit them properly
+    MULES::limit
+    (
+        1.0/mesh_.time().deltaT().value(),
+        geometricOneField(),
+        alpha,
+        phi_,
+        alphaPhiCorr,
+        Sp,
+        Su,  // ← MULES will limit this!
+        oneField(),  // max bound
+        zeroField(), // min bound
+        true
+    );
+    
+    ++phasei;
+}
 
     // Ensure sum of limited corrections maintains compatibility
     MULES::limitSum(alphaPhiCorrs);
@@ -1564,75 +1601,70 @@ void Foam::multiphaseMixtureThermo::solveAlphasWithSources
     phasei = 0;
 for (phaseModel& alpha : phases_)
 {
-    surfaceScalarField& alphaPhi = alphaPhis[phasei];
-    surfaceScalarField& alphaPhiCorr = alphaPhiCorrs[phasei];
-    
-    // Combine base flux + limited corrections
-    alphaPhi += alphaPhiCorr;
-    
-    const volScalarField& alphaSource = phaseChangeSources[phasei];
-    
-    // Prepare source terms
-    volScalarField::Internal Sp
-    (
-        IOobject("Sp", mesh_.time().timeName(), mesh_),
-        mesh_,
-        dimensionedScalar(dimless/dimTime, Zero)
-    );
-
-    
-    volScalarField::Internal Su
-    (
-        IOobject("Su", mesh_.time().timeName(), mesh_),
-        // Only include phase-specific sources
-        alphaSource
-    );
-    
-
- 
-    const scalarField& dgdt = alpha.dgdt();
-    forAll(dgdt, celli)
-    {
-        if (dgdt[celli] < 0.0 && alpha[celli] > 0.0)
-        {
-            Sp[celli] += dgdt[celli]*alpha[celli];
-            Su[celli] -= dgdt[celli]*alpha[celli];
-        }
-        else if (dgdt[celli] > 0.0 && alpha[celli] < 1.0)
-        {
-            Sp[celli] -= dgdt[celli]*(1.0 - alpha[celli]);
-        }
-    }
-    
-
-    for (const phaseModel& alpha2 : phases_)
-    {
-        if (&alpha2 == &alpha) continue;
+        surfaceScalarField& alphaPhi = alphaPhis[phasei];
+        surfaceScalarField& alphaPhiCorr = alphaPhiCorrs[phasei];
         
-        const scalarField& dgdt2 = alpha2.dgdt();
-        forAll(dgdt2, celli)
+        alphaPhi += alphaPhiCorr;
+        
+        // NO explicit sources - set to zero!
+        volScalarField::Internal Sp
+        (
+            IOobject("Sp", mesh_.time().timeName(), mesh_),
+            mesh_,
+            dimensionedScalar(dimless/dimTime, Zero)
+        );
+        
+        volScalarField::Internal Su
+        (
+            IOobject("Su", mesh_.time().timeName(), mesh_),
+            mesh_,
+            dimensionedScalar(dimless/dimTime, Zero)  // ZERO sources!
+        );
+
+ 
+        const scalarField& dgdt = alpha.dgdt();
+        forAll(dgdt, celli)
         {
-            if (dgdt2[celli] > 0.0 && alpha2[celli] < 1.0)
+            if (dgdt[celli] < 0.0 && alpha[celli] > 0.0)
             {
-                Sp[celli] -= dgdt2[celli]*(1.0 - alpha2[celli]);
-                Su[celli] += dgdt2[celli]*alpha[celli];
+                Sp[celli] += dgdt[celli]*alpha[celli];
+                Su[celli] -= dgdt[celli]*alpha[celli];
             }
-            else if (dgdt2[celli] < 0.0 && alpha2[celli] > 0.0)
+            else if (dgdt[celli] > 0.0 && alpha[celli] < 1.0)
             {
-                Sp[celli] += dgdt2[celli]*alpha2[celli];
+                Sp[celli] -= dgdt[celli]*(1.0 - alpha[celli]);
             }
         }
-    }
-    
- 
-    MULES::explicitSolve
-    (
-        geometricOneField(),
-        alpha,
-        alphaPhi,
-        Sp,
-        Su
-    );
+        
+        // Cross-phase dgdt coupling
+        for (const phaseModel& alpha2 : phases_)
+        {
+            if (&alpha2 == &alpha) continue;
+            
+            const scalarField& dgdt2 = alpha2.dgdt();
+            forAll(dgdt2, celli)
+            {
+                if (dgdt2[celli] > 0.0 && alpha2[celli] < 1.0)
+                {
+                    Sp[celli] -= dgdt2[celli]*(1.0 - alpha2[celli]);
+                    Su[celli] += dgdt2[celli]*alpha[celli];
+                }
+                else if (dgdt2[celli] < 0.0 && alpha2[celli] > 0.0)
+                {
+                    Sp[celli] += dgdt2[celli]*alpha2[celli];
+                }
+            }
+        }
+        
+        // Solve with ONLY dgdt, no explicit sources
+        MULES::explicitSolve
+        (
+            geometricOneField(),
+            alpha,
+            alphaPhi,
+            Sp,
+            Su
+        );
     
     sumAlpha += alpha;
     
