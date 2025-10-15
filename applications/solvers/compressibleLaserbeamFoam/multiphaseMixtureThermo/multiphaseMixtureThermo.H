@@ -172,6 +172,21 @@ private:
 
         void calcAlphas();
 
+                void calculatePhaseChangeSources
+        (
+            PtrList<volScalarField>& phaseChangeSources,
+            volScalarField& vDotPhaseChange,
+            volScalarField* massdotterm,
+            const dimensionedScalar& deltaT
+        );
+
+        // MODIFIED: Solve alphas with pre-calculated sources
+        void solveAlphasWithSources
+        (
+            const PtrList<volScalarField>& phaseChangeSources,
+            const volScalarField& vDotPhaseChange
+        );
+
         tmp<volScalarField> solveAlphas(volScalarField *massdotterm/*,PtrList<surfaceScalarField> *alpharhophis*/);
 
         tmp<surfaceVectorField> nHatfv
@@ -488,6 +503,8 @@ public:
 
         //- Solve for the mixture phase-fractions
         tmp<volScalarField> solve(volScalarField *massdotterm/*,PtrList<surfaceScalarField> *alpharhophis*/);
+
+
 };
 
 

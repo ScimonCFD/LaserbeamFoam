@@ -165,12 +165,12 @@ int main(int argc, char *argv[])
             rho=mixture.rho();
 
 
-            scalar totalMass = fvc::domainIntegrate(rho).value();
-            scalar massChange = totalMass - fvc::domainIntegrate(rhoOld).value();
+            // scalar totalMass = fvc::domainIntegrate(rho).value();
+            // scalar massChange = totalMass - fvc::domainIntegrate(rhoOld).value();
 
-            Info <<"totalMass: \t"<<totalMass<<endl;
+            // Info <<"totalMass: \t"<<totalMass<<endl;
             
-            Info <<"massChange: \t"<<massChange<<endl;
+            // Info <<"massChange: \t"<<massChange<<endl;
 
 
 
