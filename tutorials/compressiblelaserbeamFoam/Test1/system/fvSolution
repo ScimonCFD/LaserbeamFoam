@@ -19,7 +19,7 @@ solvers
 {
     "alpha.*"
     {
-        nAlphaSubCycles 3;
+        nAlphaSubCycles 1;
         cAlpha	1;
     }
 
@@ -95,6 +95,7 @@ MELTING
 
 PIMPLE
 {
+    nOuterCorrectors 1;
     nCorrectors     3;
     nNonOrthogonalCorrectors 0;
 }

@@ -187,9 +187,9 @@ interfaceDiffusion
 	(metal1vapour metal1)	0.0
 	(metal1 metal2)	1e-9
 	(metal2vapour metal1)	0.0
-	(metal1 metal3)	1e-9
+	(metal1 metal3)	1e-6
 	(metal3vapour metal1)	0.0
-	(metal1 metal4)	1e-9
+	(metal1 metal4)	1e-6
 	(metal4vapour metal1)	0.0
 	(air metal1)	0.0
 	
