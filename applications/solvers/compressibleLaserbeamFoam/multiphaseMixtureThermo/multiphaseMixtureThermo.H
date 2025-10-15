@@ -114,15 +114,6 @@ private:
 
     // Private Data
 
-
-        PtrList<volScalarField> phaseChangeSources_;
-    
-    //- Volumetric dilation from phase change
-    volScalarField vDotPhaseChange_;
-
-
-
-
         //- Dictionary of phases
         PtrDictionary<phaseModel> phases_;
 
@@ -226,15 +217,6 @@ private:
 
 public:
 
-
-
-    const PtrList<volScalarField>& phaseChangeSources() const
-    {
-        return phaseChangeSources_;
-    }
-
-
-    
     //- Runtime type information
     TypeName("multiphaseMixtureThermo");
 

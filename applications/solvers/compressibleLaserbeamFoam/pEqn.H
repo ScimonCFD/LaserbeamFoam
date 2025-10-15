@@ -98,26 +98,15 @@
 
         if (pimple.finalNonOrthogonalIter())
         {
-    const PtrList<volScalarField>& pcSources = mixture.phaseChangeSources();
-    
-    phasei = 0;
-    for (phaseModel& phase : mixture.phases())
-    {
-        volScalarField compressionDgdt = 
-            pos0(phase) * (p_rghEqnComps[phasei] & p_rgh) / phase.thermo().rho();
-        
-        // Add phase change if sources are available
-        if (pcSources.size() > 0 && phasei < pcSources.size())
-        {
-            phase.dgdt() = compressionDgdt + pcSources[phasei];
-        }
-        else
-        {
-            phase.dgdt() = compressionDgdt;
-        }
-        
-        ++phasei;
-    }
+            phasei = 0;
+            for (phaseModel& phase : mixture.phases())
+            {
+                phase.dgdt() =
+                    pos0(phase)
+                  *(p_rghEqnComps[phasei] & p_rgh)/phase.thermo().rho();
+
+                ++phasei;
+            }
 
             phi = phiHbyA + p_rghEqnIncomp.flux();
 
@@ -125,76 +114,6 @@
               + rAU()*fvc::reconstruct((phig + p_rghEqnIncomp.flux())/rAUf);
             U.correctBoundaryConditions();
         }
-
-
-
-//         if (pimple.finalNonOrthogonalIter())
-// {
-//     // First calculate unconstrained dgdt for each phase
-//     PtrList<volScalarField> dgdts(mixture.phases().size());
-//     volScalarField sumDgdt
-//     (
-//         IOobject("sumDgdt", mesh.time().timeName(), mesh),
-//         mesh,
-//         dimensionedScalar(dimless/dimTime, Zero)
-//     );
-    
-//     phasei = 0;
-//     for (phaseModel& phase : mixture.phases())
-//     {
-//         dgdts.set
-//         (
-//             phasei,
-//             new volScalarField
-//             (
-//                 "dgdt_" + phase.name(),
-//                 pos0(phase) * (p_rghEqnComps[phasei] & p_rgh) / phase.thermo().rho()
-//             )
-//         );
-        
-//         // Calculate what the sum would be
-//         sumDgdt += dgdts[phasei];
-        
-//         ++phasei;
-//     }
-    
-//     // Now correct each dgdt to ensure Σ(dgdt) = 0 (maintains Σα = 1)
-//     phasei = 0;
-//     for (phaseModel& phase : mixture.phases())
-//     {
-//         // Subtract the mean to ensure sum = 0
-//         // Weighted by volume fraction so larger phases absorb more correction
-//         phase.dgdt() = dgdts[phasei] - sumDgdt;
-        
-//         ++phasei;
-//     }
-    
-//     // Verify constraint
-//     volScalarField checkSum
-//     (
-//         IOobject("checkSum", mesh.time().timeName(), mesh),
-//         mesh,
-//         dimensionedScalar(dimless/dimTime, Zero)
-//     );
-    
-//     for (const phaseModel& phase : mixture.phases())
-//     {
-//         checkSum += phase.dgdt();
-//     }
-    
-//     Info << "Sum of dgdt: mean = " << checkSum.weightedAverage(mesh.V()).value()
-//          << ", max = " << max(mag(checkSum)).value() << endl;
-    
-//     // Rest of pEqn.H continues...
-//     phi = phiHbyA + p_rghEqnIncomp.flux();
-    
-//     U = HbyA + rAU()*fvc::reconstruct((phig + p_rghEqnIncomp.flux())/rAUf);
-//     U.correctBoundaryConditions();
-// }
-
-
-
-
     }
 
     p = max(p_rgh + mixture.rho()*gh, pMin);

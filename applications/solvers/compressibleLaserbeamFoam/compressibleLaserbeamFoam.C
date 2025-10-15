@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-            // volScalarField rhoOld = rho;
+            volScalarField rhoOld = rho;
 
 
             vDot = mixture.solve(&mass_dot);
