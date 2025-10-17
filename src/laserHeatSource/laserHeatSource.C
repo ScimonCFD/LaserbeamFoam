@@ -851,7 +851,7 @@ void laserHeatSource::updateDeposition
             {
                 // Calculate the iterator distance as a fraction of the cell size
                 const scalar iterator_distance =
-                    (0.31/pi)*pow(VI[myCellID], 1.0/3.0);
+                    (0.25/pi)*pow(VI[myCellID], 1.0/3.0);
 
                 // Move the ray by the iterator distance
                 curRay.position_ += iterator_distance*curRay.direction_;
@@ -1058,13 +1058,13 @@ void laserHeatSource::updateDeposition
                     
                     
                             // Ray is in the bulk - deposit energy and reflect back
-        if (debug)
-        {
+        // if (debug)
+        // {
             Info<< "Within the bulk at cell " << myCellID 
                 << ", alpha = " << alphaFilteredI[myCellID]
                 << ", |n| = " << mag(nFilteredI[myCellID])
                 << ", power = " << curRay.power_ << endl;
-        }
+        // }
         
         
         
