@@ -33,9 +33,9 @@ laserRadius 0.0005;
 
 N_sub_divisions	2;
 
-nRadial	90;
+nRadial	50;
 
-nAngular	120;
+nAngular	90;
 
 wavelength	1.064e-6;
 

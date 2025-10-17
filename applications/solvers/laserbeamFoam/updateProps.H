@@ -20,6 +20,8 @@
 
     TSolidus.correctBoundaryConditions();
     TLiquidus.correctBoundaryConditions();
+    beta.correctBoundaryConditions();  // ADDED
+    rhok.correctBoundaryConditions();  // ADDED
 
     #include "updateKappaCp.H"
 
@@ -47,6 +49,7 @@
     laser.yDim().correctBoundaryConditions();
 
     metalaverage = fvc::average(alpha1);
+    metalaverage.correctBoundaryConditions();  // ADDED
 
     alpha_filtered = volScalarField("alpha_filtered", alpha1);
     alpha_filtered.correctBoundaryConditions();
@@ -72,43 +75,48 @@
     }
 
     // Access the boundary fields
-volScalarField::Boundary& alpha_filteredBf = alpha_filtered.boundaryFieldRef();
-const volScalarField::Boundary& alpha1Bf = alpha1.boundaryField();
+    volScalarField::Boundary& alpha_filteredBf = alpha_filtered.boundaryFieldRef();
+    const volScalarField::Boundary& alpha1Bf = alpha1.boundaryField();
 
-// Loop through all boundary patches
-forAll(alpha_filteredBf, patchi)
-{
-    // Get references to the patch fields
-    scalarField& alpha_filteredPatch = alpha_filteredBf[patchi];
-    const scalarField& alpha1Patch = alpha1Bf[patchi];
-    
-    // Apply the same logic to each face in the patch
-    forAll(alpha_filteredPatch, facei)
+    // Loop through all boundary patches
+    forAll(alpha_filteredBf, patchi)
     {
-        if (alpha1Patch[facei] > 0.99)
+        // Get references to the patch fields
+        scalarField& alpha_filteredPatch = alpha_filteredBf[patchi];
+        const scalarField& alpha1Patch = alpha1Bf[patchi];
+        
+        // Apply the same logic to each face in the patch
+        forAll(alpha_filteredPatch, facei)
         {
-            alpha_filteredPatch[facei] = 1.0;
-        }
-        else if (alpha1Patch[facei] < 0.01)
-        {
-            alpha_filteredPatch[facei] = 0.0;
-        }
-        else
-        {
-            alpha_filteredPatch[facei] = alpha1Patch[facei];
+            if (alpha1Patch[facei] > 0.99)
+            {
+                alpha_filteredPatch[facei] = 1.0;
+            }
+            else if (alpha1Patch[facei] < 0.01)
+            {
+                alpha_filteredPatch[facei] = 0.0;
+            }
+            else
+            {
+                alpha_filteredPatch[facei] = alpha1Patch[facei];
+            }
         }
     }
-}
 
     alpha_filtered.correctBoundaryConditions();
 
+    alpha_smoothed = fvc::average(alpha1);
+    alpha_smoothed.correctBoundaryConditions();
+
     LatentHeat =
         alpha_filtered*LatentHeat1 + (1.0 - alpha_filtered)*LatentHeat2;
+    LatentHeat.correctBoundaryConditions();  // ADDED
 
     // gradepsilon1 = fvc::grad(epsilon1);
     // gradepsilon1.correctBoundaryConditions();
 
     n_filtered = fvc::grad(alpha_filtered)/((mag(fvc::grad(alpha_filtered)) + deltaN));
+    n_filtered.correctBoundaryConditions();  // ADDED - IMPORTANT!
 
     e1temp = fvc::average(epsilon1);
     e1temp.correctBoundaryConditions();

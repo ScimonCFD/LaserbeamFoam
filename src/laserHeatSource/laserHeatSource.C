@@ -553,6 +553,12 @@ void laserHeatSource::updateDeposition
     rayNumber_ *= 0.0;
     rayQ_ *= 0.0;
 
+    deposition_.correctBoundaryConditions();
+    laserBoundary_.correctBoundaryConditions();
+    errorTrack_.correctBoundaryConditions();
+    rayNumber_.correctBoundaryConditions();
+    rayQ_.correctBoundaryConditions();
+
     const scalar time = deposition_.time().value();
 
     forAll(laserNames_, laserI)
@@ -679,6 +685,9 @@ void laserHeatSource::updateDeposition
             globalBB_
         );
     }
+
+    deposition_.correctBoundaryConditions();
+
 }
 
 
@@ -1058,13 +1067,13 @@ void laserHeatSource::updateDeposition
                     
                     
                             // Ray is in the bulk - deposit energy and reflect back
-        // if (debug)
-        // {
+        if (debug)
+        {
             Info<< "Within the bulk at cell " << myCellID 
                 << ", alpha = " << alphaFilteredI[myCellID]
                 << ", |n| = " << mag(nFilteredI[myCellID])
                 << ", power = " << curRay.power_ << endl;
-        // }
+        }
         
         
         
@@ -1074,7 +1083,7 @@ void laserHeatSource::updateDeposition
                         curRay.direction_ = -curRay.direction_;
                         curRay.power_ *= 0.5;
                         curRay.path_.append(curRay.position_);
-                        break;
+                        // break;
                     }
                     else if
     (
@@ -1110,6 +1119,8 @@ void laserHeatSource::updateDeposition
             }
         }
     }
+
+    deposition_.correctBoundaryConditions();
 
      const scalar TotalQ = fvc::domainIntegrate(deposition_).value();
      Info<< "Total Q deposited this timestep: " << TotalQ <<endl;
