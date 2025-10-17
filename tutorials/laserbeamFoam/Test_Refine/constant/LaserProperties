@@ -33,7 +33,7 @@ laserRadius 0.0005;
 
 N_sub_divisions	2;
 
-nRadial	30;
+nRadial	90;
 
 nAngular	120;
 

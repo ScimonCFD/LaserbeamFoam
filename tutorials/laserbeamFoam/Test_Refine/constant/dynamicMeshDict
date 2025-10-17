@@ -23,8 +23,8 @@ refineInterval  1;
 field           alpha.metal;
 
 // Refine field inbetween lower..upper
-lowerRefineLevel 0.001;
-upperRefineLevel 0.999;
+lowerRefineLevel 0.00001;
+upperRefineLevel 0.99999;
 
 // If value < unrefineLevel unrefine
 unrefineLevel   0.001;
@@ -50,6 +50,8 @@ correctFluxes
     (ghf none)
     (alphaPhiUn none)
     (rhophicp none)
+    (dVf_ none)
+    (alphaPhi_ none)
 );
 
 // Write the refinement level as a volScalarField
