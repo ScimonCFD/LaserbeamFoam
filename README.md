@@ -34,11 +34,10 @@ from the adiabatic two-phase interFoam code developed by
 [OpenCFD Ltd.](http://openfoam.com/) to include non-isothermal state transition
 physics and ray-tracing heat source application.
 
-### `multiComponentlaserbeamFoam`
+### `compressiblelaserbeamFoam`
 
 An extension of the `laserbeamfoam` solver to multi-component metallic
-substrates. This solver can simulate M-component metallic substrates in the
-presence of gas phases. Diffusion is treated through a Fickian diffusion model
+substrates. This solver can simulate (2N+1)-component systems systems where the 2N is because N-components can exist in the domain in their condensed and vapourised states and the mass transfer and volumetric dilation between these states is fully captured. Diffusion is treated through a Fickian diffusion model
 with the diffusivity specified through 'diffusion pairs', and the interface
 compression is again specified pair-wise. The miscible phases in the simulation
 should have diffusivity specified between them, and immiscible phase pairs
@@ -46,15 +45,15 @@ should have an interface compression term specified between them (typically 1).
 
 Target applications for the solvers included in this repository include:
 
-* Dissimilar Laser Welding
-* Dissimilar Laser Drilling
-* Dissimilar Laser Powder Bed Fusion
-* Dissimilar Selective Laser Melting
+* Laser Welding
+* Laser Drilling
+* Laser Powder Bed Fusion
+* Selective Laser Melting
 
 ## Installation
 
-The `main` branch compiles with OpenFOAM-10, while the `OF2506` branch compiles
- with OpenFOAM-v2506. To install the `laserbeamFoam` solvers, first, install and
+The `OpenFoam_com_main` branch compiles with openfoam v2506, while the `Openfoam_org_main` branch compiles
+ with OpenFOAM10. To install the `laserbeamFoam` solvers, first, install and
  load a compatible version of OpenFOAM, then clone and build the `laserbeamFoam`
  library:
 
@@ -158,29 +157,6 @@ Cases can be cleaned and reset using the included `Allclean` scripts, i.e.
 ./Allclean
 ```
 
-### 2D Plate
-
-In these cases, the penetration rate of an incident laser source is investigated
- based on the angle of incidence of the laser beam. Two lasers are present in
- the case: one is perpendicular to the substrate, and one is at 45 degrees to
- the initial plate normal.
-
-### 3D Plate
-
-In this case, the two-dimensional 45-degree example is extended to three dimensions.
-
-### 2D Circular Particles
-
-In this example, a series of circular metallic regions is seeded on top of a
- planar substrate. The laser heat source traverses the domain and melts these
- regions, and their topology evolves accordingly.
-
-### 2D Laser-Powder Bed Fusion
-
-In this example, a two-dimensional domain is seeded with many small powder
- particles with a complex size distribution, representative of that observed in
- the L-PBF manufacturing process. The laser heat source traverses the domain, and
- some particles melt and re-solidify in the heat source's wake.
 
 ## Algorithm
 
