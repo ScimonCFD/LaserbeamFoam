@@ -552,10 +552,24 @@ volScalarField alpha_filtered
         runTime.timeName(),
         mesh,
         IOobject::NO_READ,
-        IOobject::NO_WRITE
+        IOobject::AUTO_WRITE
     ),
     mesh,
     dimensionedScalar("alpha_filtered", dimensionSet(0, 0, 0, -0, 0), 0.0)
+);
+
+volScalarField alpha_smoothed
+(
+    IOobject
+    (
+        "alpha_smoothed",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("alpha_smoothed", dimensionSet(0, 0, 0, -0, 0), 0.0)
 );
 
 // volVectorField gradepsilon1(fvc::grad(epsilon1));
@@ -724,6 +738,8 @@ volScalarField condition
     mesh,
     dimensionedScalar("condition", dimensionSet(0, 0, 0, -0, 0), 0.0)
 );
+
+
 
 
 typedef incompressibleInterPhaseTransportModel

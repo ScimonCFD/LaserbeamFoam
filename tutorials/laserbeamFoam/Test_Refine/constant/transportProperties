@@ -15,7 +15,7 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 // Interface tracking method: isoAdvector or MULES
-interfaceTrackingScheme isoAdvector;
+interfaceTrackingScheme MULES;
 
 phases          (metal gas);
 

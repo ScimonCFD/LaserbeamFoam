@@ -45,7 +45,7 @@ solvers
         solver          PCG;
         preconditioner  DIC;
         tolerance       1e-07;
-        relTol          0.05;
+        relTol          0.0;
     }
 
     p_rghFinal

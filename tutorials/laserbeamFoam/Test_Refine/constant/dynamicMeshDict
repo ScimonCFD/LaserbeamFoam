@@ -20,7 +20,7 @@ dynamicFvMesh   dynamicRefineFvMesh;
 refineInterval  1;
 
 // Field to be refinement on
-field           alpha.metal;
+field           alpha_smoothed;
 
 // Refine field inbetween lower..upper
 lowerRefineLevel 0.001;
@@ -30,7 +30,7 @@ upperRefineLevel 0.999;
 unrefineLevel   0.001;
 
 // Have slower than 2:1 refinement
-nBufferLayers   2;
+nBufferLayers   3;
 
 // Refine cells only up to maxRefinement levels
 maxRefinement   3;
@@ -50,6 +50,8 @@ correctFluxes
     (ghf none)
     (alphaPhiUn none)
     (rhophicp none)
+    (dVf_ none)
+    (alphaPhi_ none)
 );
 
 // Write the refinement level as a volScalarField

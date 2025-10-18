@@ -553,6 +553,12 @@ void laserHeatSource::updateDeposition
     rayNumber_ *= 0.0;
     rayQ_ *= 0.0;
 
+    deposition_.correctBoundaryConditions();
+    laserBoundary_.correctBoundaryConditions();
+    errorTrack_.correctBoundaryConditions();
+    rayNumber_.correctBoundaryConditions();
+    rayQ_.correctBoundaryConditions();
+
     const scalar time = deposition_.time().value();
 
     forAll(laserNames_, laserI)
@@ -679,6 +685,9 @@ void laserHeatSource::updateDeposition
             globalBB_
         );
     }
+
+    deposition_.correctBoundaryConditions();
+
 }
 
 
@@ -851,7 +860,9 @@ void laserHeatSource::updateDeposition
             {
                 // Calculate the iterator distance as a fraction of the cell size
                 const scalar iterator_distance =
-                    (0.5/pi)*pow(VI[myCellID], 1.0/3.0);
+                    (0.25/pi)*pow(VI[myCellID], 1.0/3.0);
+
+                    // Pout<<"iterator_distance: "<<iterator_distance<<endl;
 
                 // Move the ray by the iterator distance
                 curRay.position_ += iterator_distance*curRay.direction_;
@@ -1048,23 +1059,40 @@ void laserHeatSource::updateDeposition
                             );
                     }
                 }
-                else 
-                {
-                    if
+                else if
                     (
                         alphaFilteredI[myCellID] > dep_cutoff
                      && mag(nFilteredI[myCellID]) < 0.5
                      && curRay.power_ > SMALL
                     )
                     {
-                        // Deposit half the energy and send it back the way it came
-                        Info<< "Within the bulk" << endl;
+                    
+                    
+                            // Ray is in the bulk - deposit energy and reflect back
+        if (debug)
+        {
+            Info<< "Within the bulk at cell " << myCellID 
+                << ", alpha = " << alphaFilteredI[myCellID]
+                << ", |n| = " << mag(nFilteredI[myCellID])
+                << ", power = " << curRay.power_ << endl;
+        }
+        
 
                         deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];;
                         curRay.direction_ = -curRay.direction_;
                         curRay.power_ *= 0.5;
+                        curRay.path_.append(curRay.position_);
+                        // break;
                     }
-                }
+                    else if
+    (
+        alphaFilteredI[myCellID] < dep_cutoff  // In gas/outside material
+     && curRay.power_ > rayPowerAbsTol
+    )
+    {
+    
+    }
+                
 
                 // Update the ray's path
                 curRay.path_.append(curRay.position_);
@@ -1090,6 +1118,8 @@ void laserHeatSource::updateDeposition
             }
         }
     }
+
+    deposition_.correctBoundaryConditions();
 
      const scalar TotalQ = fvc::domainIntegrate(deposition_).value();
      Info<< "Total Q deposited this timestep: " << TotalQ <<endl;
