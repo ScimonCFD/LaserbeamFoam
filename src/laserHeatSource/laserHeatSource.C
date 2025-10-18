@@ -862,6 +862,8 @@ void laserHeatSource::updateDeposition
                 const scalar iterator_distance =
                     (0.25/pi)*pow(VI[myCellID], 1.0/3.0);
 
+                    // Pout<<"iterator_distance: "<<iterator_distance<<endl;
+
                 // Move the ray by the iterator distance
                 curRay.position_ += iterator_distance*curRay.direction_;
 
@@ -1075,9 +1077,6 @@ void laserHeatSource::updateDeposition
                 << ", power = " << curRay.power_ << endl;
         }
         
-        
-        
-
 
                         deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];;
                         curRay.direction_ = -curRay.direction_;
