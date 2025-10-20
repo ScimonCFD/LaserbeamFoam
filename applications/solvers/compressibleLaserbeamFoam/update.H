@@ -96,6 +96,7 @@
     }
 
     condensate = max(min(condensate, 1.0), 0.0);
+    // condensatesmooth=fvc::average(condensate);
 
 
     electrical_resistivity.correctBoundaryConditions();
@@ -128,25 +129,26 @@
             pLocal[pointi] = pp[pLabels[pointi]];
         }
 
-        // xDim[celli] =
-        //     Foam::max(pLocal & vector(1,0,0))
-        //   - Foam::min(pLocal & vector(1,0,0));
+
         yDimI[celli] =
             Foam::max(pLocal & vector(0,1,0))
           - Foam::min(pLocal & vector(0,1,0));
-        // zDim[celli] =
-        //     Foam::max(pLocal & vector(0,0,1))
-        //   - Foam::min(pLocal & vector(0,0,1));
+
+        
+
     }
 
     laser.yDim().correctBoundaryConditions();
 
     metalaverage = fvc::average(condensate);
+    condensateFiltered = max(min(condensate, scalar(1)), scalar(0));
+    condensateFiltered.correctBoundaryConditions();
 
     // laser.refineFlag() *= 0.0;
     // laser.refineFlag() += metalaverage;
 
-    const volVectorField gradcondensate(fvc::grad(condensate));
+    const volVectorField gradcondensate(fvc::grad(condensateFiltered));
 
-    n_filtered = fvc::grad(condensate)/((mag(gradcondensate) + deltaN));
+    n_filtered = fvc::grad(condensateFiltered)/((mag(gradcondensate) + deltaN));
+    n_filtered.correctBoundaryConditions();
 }

@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
             // Update the laser deposition field
             laser.updateDeposition
             (
-                condensate, n_filtered, electrical_resistivity
+                condensateFiltered, n_filtered, electrical_resistivity
             );
 
 

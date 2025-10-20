@@ -129,6 +129,37 @@ autoPtr<compressible::turbulenceModel> turbulence
         dimensionedScalar("condensate",dimless,0.0)
     );
 
+            volScalarField condensateFiltered
+    (
+        IOobject
+        (
+            "condensateFiltered",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("condensateFiltered",dimless,0.0)
+    );
+    condensateFiltered = max(min(condensate, scalar(1)), scalar(0));
+    condensateFiltered.correctBoundaryConditions();
+
+    //         volScalarField condensatesmooth
+    // (
+    //     IOobject
+    //     (
+    //         "condensatesmooth",
+    //         runTime.timeName(),
+    //         mesh,
+    //         IOobject::NO_READ,
+    //         IOobject::AUTO_WRITE
+    //     ),
+    //     mesh,
+    //     dimensionedScalar("condensatesmooth",dimless,0.0)
+    // );
+    // condensatesmooth=fvc::average(condensate);
+
 
     volScalarField metalaverage
 (

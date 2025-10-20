@@ -949,6 +949,33 @@ void laserHeatSource::updateDeposition
 
                    const scalar theta_in = std::acos(argument);
 
+
+
+                   const scalar pi = constant::mathematical::pi;
+const scalar grazingAngleThreshold = 0.48 * pi; // ~86.4 degrees
+
+if (theta_in >= grazingAngleThreshold)
+{
+    // Grazing angle - deposit half energy and reflect
+    deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];
+    curRay.power_ *= 0.5;
+    
+    // Simple reflection for grazing angles
+    curRay.direction_ -=
+        (
+            (
+                (
+                    2.0*curRay.direction_
+                  & nFilteredI[myCellID]
+                )/magSqr(nFilteredI[myCellID])
+            )
+        )*nFilteredI[myCellID];
+}
+
+else{
+
+
+
                     const scalar alpha_laser =
                         Foam::sqrt
                         (
@@ -1033,17 +1060,17 @@ void laserHeatSource::updateDeposition
 
                     const scalar absorptivity = 1.0 - ((R_s + R_p)/2.0);
 
-                    if (theta_in >= pi/2.0)
-                    {
-                        // Dump half of energy and propogate further - once the
-                        // optics is its own function we shoule work out what
-                        // pi-theta returns for the absorptivity and pass this
-                        // here instead of 0.5
-                        deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];//yDimI[myCellID];
-                        curRay.power_ *= 0.5;
-                    }
-                    else
-                    {
+                    // if (theta_in >= pi/2.0)
+                    // {
+                    //     // Dump half of energy and propogate further - once the
+                    //     // optics is its own function we shoule work out what
+                    //     // pi-theta returns for the absorptivity and pass this
+                    //     // here instead of 0.5
+                    //     deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];//yDimI[myCellID];
+                    //     curRay.power_ *= 0.5;
+                    // }
+                    // else
+                    // {
                         deposition_[myCellID] += absorptivity*curRay.power_/VI[myCellID];
                         curRay.power_ *= (1.0 - absorptivity);
                         curRay.direction_ -=
@@ -1057,7 +1084,9 @@ void laserHeatSource::updateDeposition
                                     )
                                 )*nFilteredI[myCellID]
                             );
-                    }
+                    // }
+
+                        }
                 }
                 else if
                     (
