@@ -904,6 +904,7 @@ void laserHeatSource::updateDeposition
                         plasma_frequency*plasma_frequency
                        *constant::electromagnetic::epsilon0.value()
                        *resistivity_in[myCellID];
+                    //    Info<<"TEST_TESISTIVITY: "<<resistivity_in<<endl;
 
                     const scalar e_r =
                         1.0
@@ -952,13 +953,13 @@ void laserHeatSource::updateDeposition
 
 
                    const scalar pi = constant::mathematical::pi;
-const scalar grazingAngleThreshold = 0.48 * pi; // ~86.4 degrees
+const scalar grazingAngleThreshold = 0.49 * pi; // ~86.4 degrees
 
 if (theta_in >= grazingAngleThreshold)
 {
     // Grazing angle - deposit half energy and reflect
-    deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];
-    curRay.power_ *= 0.5;
+    // deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];
+    curRay.power_ *= 0.0;
     
     // Simple reflection for grazing angles
     curRay.direction_ -=

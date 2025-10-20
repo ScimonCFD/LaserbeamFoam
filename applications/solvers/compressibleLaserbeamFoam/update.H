@@ -87,8 +87,13 @@
         if (phase1.isGaseous())
         {
             condensate -= alpha1;
+        }
+
+        if (phase1.isCondensed())
+        {
             electrical_resistivity += alpha1/phaseconductivity;
         }
+        
 
 
 
@@ -96,7 +101,8 @@
     }
 
     condensate = max(min(condensate, 1.0), 0.0);
-    // condensatesmooth=fvc::average(condensate);
+
+    electrical_resistivity /= max(condensate, SMALL);
 
 
     electrical_resistivity.correctBoundaryConditions();
