@@ -10,6 +10,8 @@
     rhoCp = rho*cp;
     rhophicp = fvc::interpolate(cp)*rhoPhi;
 
+    em = (epsilon1*emL) + ((1.0 - epsilon1)*emS);
+
     // const volTensorField gradU(fvc::grad(U));
     // volTensorField tau
     // (
@@ -29,6 +31,9 @@
            *Foam::exp(LatentHeatVap*Mm*((T - Tvap)/(R*T*Tvap)))
            /Foam::pow(2*M_PI*Mm*R*T,0.5);
 
+        const volScalarField Qrad_expl (SB*em*(Foam::pow(TRef,4) + 3*Foam::pow(T,4)));
+        const volScalarField Qrad_inpl (-(4*SB*em*Foam::pow(T,3)));
+
         if (damperSwitch)
         {
             scalarField& thermalDamperI = thermalDamper;
@@ -47,28 +52,23 @@
             thermalDamper.correctBoundaryConditions();
         }
 
-
-
+        const volScalarField gradAlphaDamper (mag(gradAlpha)*thermalDamper);
         
-
         fvScalarMatrix TEqn
         (
             fvm::ddt(rhoCp,T)
           + fvm::div(rhophicp, T)
           - fvm::Sp(fvc::ddt(rhoCp) + fvc::div(rhophicp), T)
           - fvm::laplacian(kappa, T)
+          - fvm::Sp(Qrad_inpl*gradAlphaDamper, T)
           //- (tau && gradU) // Viscous dissipation
          ==
-            
-        laser.deposition()
-        
-          - Qv*mag(gradAlpha)*thermalDamper
+            laser.deposition()
+          + (Qrad_expl - Qv)*gradAlphaDamper
           - TRHS
         );
 
         TEqn.relax();
-
-        
 
         TEqn.solve();
 
