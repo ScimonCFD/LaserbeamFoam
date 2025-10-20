@@ -72,17 +72,25 @@
         magperm += alpha1*phasepermeability;
 
 
-        std::string str2("vapour");
+        // std::string str2("vapour");
 
-        std::string phasename(phase1.name());
+        // std::string phasename(phase1.name());
 
-        const unsigned long res = phasename.find(str2);
+        // const unsigned long res = phasename.find(str2);
 
-        if (res != string::npos || phase1.name() == "air")
+        // if (res != string::npos || phase1.name() == "air")
+        // {
+        //     condensate -= alpha1;
+        //     electrical_resistivity += alpha1/phaseconductivity;
+        // }
+
+        if (phase1.isGaseous())
         {
             condensate -= alpha1;
             electrical_resistivity += alpha1/phaseconductivity;
         }
+
+
 
         alphasum += alpha1;
     }

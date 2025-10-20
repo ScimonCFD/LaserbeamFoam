@@ -15,6 +15,8 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+phaseState      gaseous;  // or: gaseous, solid
+
 thermoType
 {
     type            heRhoThermo;

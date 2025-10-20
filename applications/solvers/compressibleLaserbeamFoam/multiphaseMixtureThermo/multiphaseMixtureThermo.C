@@ -1229,13 +1229,8 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solveAlphas
     //int fluiditer = 0;
     for (phaseModel& alpha : phases_)
     {
-        std::string str2 ("vapour");
-
-        std::string phasename(alpha.name());
-
-        const unsigned long res = phasename.find(str2);
-
-        if (res != string::npos || alpha.name()=="air")
+        
+        if (alpha.isGaseous())
         {
             condensate -= alpha;
         }

@@ -27,6 +27,47 @@ License
 
 #include "phaseModel.H"
 
+// * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
+
+Foam::phaseModel::phaseState Foam::phaseModel::readPhaseState
+(
+    const dictionary& dict
+) const
+{
+    word stateWord = dict.getOrDefault<word>("phaseState", "condensed");
+    
+    if (stateWord == "condensed")
+    {
+        return phaseState::CONDENSED;
+    }
+    else if (stateWord == "gaseous" || stateWord == "gas" || stateWord == "vapour")
+    {
+        return phaseState::GASEOUS;
+    }
+    else if (stateWord == "solid")
+    {
+        return phaseState::SOLID;
+    }
+    else if (stateWord == "plasma")
+    {
+        return phaseState::PLASMA;
+    }
+    else
+    {
+        WarningInFunction
+            << "Unknown phase state '" << stateWord 
+            << "' for phase " << name_
+            << ". Valid options: condensed, gaseous, solid, plasma"
+            << nl << "Defaulting to condensed."
+            << endl;
+        
+        return phaseState::CONDENSED;
+    }
+}
+
+
+
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::phaseModel::phaseModel
@@ -64,7 +105,8 @@ Foam::phaseModel::phaseModel
         ),
         p.mesh(),
         dimensionedScalar(dimless/dimTime, Zero)
-    )
+    ),
+    state_(phaseState::CONDENSED)
 {
     {
         volScalarField Tp(IOobject::groupName("T", phaseName), T);
@@ -73,6 +115,25 @@ Foam::phaseModel::phaseModel
 
     thermo_ = rhoThermo::New(p.mesh(), phaseName);
     thermo_->validate(phaseName, "e");
+
+        // Read phase state from thermophysicalProperties dictionary
+    IOdictionary phaseDictionary
+    (
+        IOobject
+        (
+            "thermophysicalProperties." + phaseName,
+            p.mesh().time().constant(),
+            p.mesh(),
+            IOobject::MUST_READ_IF_MODIFIED
+        )
+    );
+    
+    state_ = readPhaseState(phaseDictionary);
+    
+    Info<< "Phase " << phaseName << " state: " << stateAsWord() << endl;
+
+
+
 
     correct();
 }
@@ -93,5 +154,21 @@ void Foam::phaseModel::correct()
     thermo_->correct();
 }
 
+Foam::word Foam::phaseModel::stateAsWord() const
+{
+    switch (state_)
+    {
+        case phaseState::CONDENSED:
+            return "condensed";
+        case phaseState::GASEOUS:
+            return "gaseous";
+        case phaseState::SOLID:
+            return "solid";
+        case phaseState::PLASMA:
+            return "plasma";
+        default:
+            return "unknown";
+    }
+}
 
 // ************************************************************************* //
