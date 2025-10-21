@@ -10,53 +10,48 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "constant";
-    object      thermophysicalProperties.mercury;
+    location    "system";
+    object      fvSchemes;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-phaseState      gaseous;  // or: gaseous, solid
-
-thermoType
+ddtSchemes
 {
-    type            heRhoThermo;
-    mixture         pureMixture;
-    transport       const;
-    thermo          eConst;
-    equationOfState perfectFluid;
-    specie          specie;
-    energy          sensibleInternalEnergy;
+    default         Euler;
 }
 
-
-TSolidus	5.0;
-TLiquidus	10.0;
-LatentHeat	1.0;
-
-elec_conductivity	1.0;
-magnetic_permeability	1.256e-6;
-
-mixture
+gradSchemes
 {
-    specie
-    {
-        molWeight   50.0;
-    }
-    equationOfState
-    {
-        rho0         5.0;
-        R	8.314;
-    }
-    thermodynamics
-    {
-        Cv          1039;
-        Hf          0;
-    }
-    transport
-    {
-        mu          1.0e-5;
-        Pr          1.0;
-    }
+    default         Gauss linear;
+}
+
+divSchemes
+{
+    div(rhoPhi,U)  Gauss upwind;
+    div(phi,alpha)  Gauss vanLeer;
+    div(phirb,alpha) Gauss linear;
+    "div\(phi,.*rho.*\)" Gauss upwind;
+    div(rhoPhi,T)  Gauss upwind;
+    div(rhoPhi,K)  Gauss upwind;
+    div(phi,p)      Gauss upwind;
+    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
+    
+    div(rhoPhi,epsilon1)	Gauss linear;//Gauss vanLeer01;
+}
+
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+}
+
+interpolationSchemes
+{
+    default         linear;
+}
+
+snGradSchemes
+{
+    default         corrected;
 }
 
 

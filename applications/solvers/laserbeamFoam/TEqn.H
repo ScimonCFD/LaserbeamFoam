@@ -8,6 +8,8 @@
     TRHS *= 0.0;
 
     rhoCp = rho*cp;
+    rhoCp.correctBoundaryConditions();  
+    
     rhophicp = fvc::interpolate(cp)*rhoPhi;
 
     em = (epsilon1*emL) + ((1.0 - epsilon1)*emS);
@@ -25,11 +27,15 @@
         T.storePrevIter();
         TRHS =
             LatentHeat*((fvc::ddt(rho, epsilon1) + fvc::div(rhoPhi, epsilon1)));
+        
+        TRHS.correctBoundaryConditions();  
 
         Qv =
             0.82*LatentHeatVap*Mm*p0
            *Foam::exp(LatentHeatVap*Mm*((T - Tvap)/(R*T*Tvap)))
            /Foam::pow(2*M_PI*Mm*R*T,0.5);
+        
+        Qv.correctBoundaryConditions();  
 
         const volScalarField Qrad_expl (SB*em*(Foam::pow(TRef,4) + 3*Foam::pow(T,4)));
         const volScalarField Qrad_inpl (-(4*SB*em*Foam::pow(T,3)));
@@ -64,6 +70,7 @@
           //- (tau && gradU) // Viscous dissipation
          ==
             laser.deposition()
+          - Qv*mag(gradAlpha)*thermalDamper
           + (Qrad_expl - Qv)*gradAlphaDamper
           - TRHS
         );
@@ -71,10 +78,13 @@
         TEqn.relax();
 
         TEqn.solve();
+        
+        T.correctBoundaryConditions();  
 
         // T.relax();
 
         Tcorr = (TLiquidus - TSolidus)*epsilon1 + TSolidus;
+        Tcorr.correctBoundaryConditions();  
 
         epsilon1 =
             max
@@ -86,6 +96,8 @@
                 ),
                 scalar(0)
             );
+        
+        epsilon1.correctBoundaryConditions();  
 
         residual =
             mag
@@ -115,4 +127,5 @@
     );
 
     gradT = fvc::grad(T);
+    gradT.correctBoundaryConditions();  // ADDED - CRITICAL!
 }

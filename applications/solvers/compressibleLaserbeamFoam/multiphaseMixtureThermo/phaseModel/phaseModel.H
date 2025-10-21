@@ -55,6 +55,21 @@ class phaseModel
 :
     public volScalarField
 {
+
+    public:
+
+   
+
+        //- Phase state types
+        enum class phaseState
+        {
+            CONDENSED,
+            GASEOUS,
+            SOLID,
+            PLASMA
+        };
+
+
     // Private data
 
         word name_;
@@ -62,6 +77,13 @@ class phaseModel
         const volScalarField& T_;
         autoPtr<rhoThermo> thermo_;
         volScalarField dgdt_;
+        phaseState state_;
+
+
+        // Private Member Functions
+
+        //- Read phase state from dictionary
+        phaseState readPhaseState(const dictionary& dict) const;
 
 
 public:
@@ -141,8 +163,56 @@ public:
             return dgdt_;
         }
 
+
+        //- Return the phase state
+        phaseState state() const;
+
+        //- Check if phase is condensed
+        bool isCondensed() const;
+
+        //- Check if phase is gaseous
+        bool isGaseous() const;
+
+        //- Check if phase is solid
+        bool isSolid() const;
+
+        //- Check if phase is plasma
+        bool isPlasma() const;
+
+        //- Return state as string
+        word stateAsWord() const;
+
+
+
         void correct();
 };
+
+
+
+inline phaseModel::phaseState phaseModel::state() const
+{
+    return state_;
+}
+
+inline bool phaseModel::isCondensed() const
+{
+    return state_ == phaseState::CONDENSED;
+}
+
+inline bool phaseModel::isGaseous() const
+{
+    return state_ == phaseState::GASEOUS;
+}
+
+inline bool phaseModel::isSolid() const
+{
+    return state_ == phaseState::SOLID;
+}
+
+inline bool phaseModel::isPlasma() const
+{
+    return state_ == phaseState::PLASMA;
+}
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

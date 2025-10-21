@@ -72,22 +72,37 @@
         magperm += alpha1*phasepermeability;
 
 
-        std::string str2("vapour");
+        // std::string str2("vapour");
 
-        std::string phasename(phase1.name());
+        // std::string phasename(phase1.name());
 
-        const unsigned long res = phasename.find(str2);
+        // const unsigned long res = phasename.find(str2);
 
-        if (res != string::npos || phase1.name() == "air")
+        // if (res != string::npos || phase1.name() == "air")
+        // {
+        //     condensate -= alpha1;
+        //     electrical_resistivity += alpha1/phaseconductivity;
+        // }
+
+        if (phase1.isGaseous())
         {
             condensate -= alpha1;
+        }
+
+        if (phase1.isCondensed())
+        {
             electrical_resistivity += alpha1/phaseconductivity;
         }
+        
+
+
 
         alphasum += alpha1;
     }
 
     condensate = max(min(condensate, 1.0), 0.0);
+
+    electrical_resistivity /= max(condensate, SMALL);
 
 
     electrical_resistivity.correctBoundaryConditions();
@@ -120,25 +135,26 @@
             pLocal[pointi] = pp[pLabels[pointi]];
         }
 
-        // xDim[celli] =
-        //     Foam::max(pLocal & vector(1,0,0))
-        //   - Foam::min(pLocal & vector(1,0,0));
+
         yDimI[celli] =
             Foam::max(pLocal & vector(0,1,0))
           - Foam::min(pLocal & vector(0,1,0));
-        // zDim[celli] =
-        //     Foam::max(pLocal & vector(0,0,1))
-        //   - Foam::min(pLocal & vector(0,0,1));
+
+        
+
     }
 
     laser.yDim().correctBoundaryConditions();
 
     metalaverage = fvc::average(condensate);
+    condensateFiltered = max(min(condensate, scalar(1)), scalar(0));
+    condensateFiltered.correctBoundaryConditions();
 
     // laser.refineFlag() *= 0.0;
     // laser.refineFlag() += metalaverage;
 
-    const volVectorField gradcondensate(fvc::grad(condensate));
+    const volVectorField gradcondensate(fvc::grad(condensateFiltered));
 
-    n_filtered = fvc::grad(condensate)/((mag(gradcondensate) + deltaN));
+    n_filtered = fvc::grad(condensateFiltered)/((mag(gradcondensate) + deltaN));
+    n_filtered.correctBoundaryConditions();
 }

@@ -553,6 +553,12 @@ void laserHeatSource::updateDeposition
     rayNumber_ *= 0.0;
     rayQ_ *= 0.0;
 
+    deposition_.correctBoundaryConditions();
+    laserBoundary_.correctBoundaryConditions();
+    errorTrack_.correctBoundaryConditions();
+    rayNumber_.correctBoundaryConditions();
+    rayQ_.correctBoundaryConditions();
+
     const scalar time = deposition_.time().value();
 
     forAll(laserNames_, laserI)
@@ -679,6 +685,9 @@ void laserHeatSource::updateDeposition
             globalBB_
         );
     }
+
+    deposition_.correctBoundaryConditions();
+
 }
 
 
@@ -851,7 +860,9 @@ void laserHeatSource::updateDeposition
             {
                 // Calculate the iterator distance as a fraction of the cell size
                 const scalar iterator_distance =
-                    (0.5/pi)*pow(VI[myCellID], 1.0/3.0);
+                    (0.25/pi)*pow(VI[myCellID], 1.0/3.0);
+
+                    // Pout<<"iterator_distance: "<<iterator_distance<<endl;
 
                 // Move the ray by the iterator distance
                 curRay.position_ += iterator_distance*curRay.direction_;
@@ -893,6 +904,7 @@ void laserHeatSource::updateDeposition
                         plasma_frequency*plasma_frequency
                        *constant::electromagnetic::epsilon0.value()
                        *resistivity_in[myCellID];
+                    //    Info<<"TEST_TESISTIVITY: "<<resistivity_in<<endl;
 
                     const scalar e_r =
                         1.0
@@ -937,6 +949,33 @@ void laserHeatSource::updateDeposition
                     }
 
                    const scalar theta_in = std::acos(argument);
+
+
+
+                   const scalar pi = constant::mathematical::pi;
+const scalar grazingAngleThreshold = 0.49 * pi; // ~86.4 degrees
+
+if (theta_in >= grazingAngleThreshold)
+{
+    // Grazing angle - deposit half energy and reflect
+    // deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];
+    curRay.power_ *= 0.0;
+    
+    // Simple reflection for grazing angles
+    curRay.direction_ -=
+        (
+            (
+                (
+                    2.0*curRay.direction_
+                  & nFilteredI[myCellID]
+                )/magSqr(nFilteredI[myCellID])
+            )
+        )*nFilteredI[myCellID];
+}
+
+else{
+
+
 
                     const scalar alpha_laser =
                         Foam::sqrt
@@ -1022,17 +1061,17 @@ void laserHeatSource::updateDeposition
 
                     const scalar absorptivity = 1.0 - ((R_s + R_p)/2.0);
 
-                    if (theta_in >= pi/2.0)
-                    {
-                        // Dump half of energy and propogate further - once the
-                        // optics is its own function we shoule work out what
-                        // pi-theta returns for the absorptivity and pass this
-                        // here instead of 0.5
-                        deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];//yDimI[myCellID];
-                        curRay.power_ *= 0.5;
-                    }
-                    else
-                    {
+                    // if (theta_in >= pi/2.0)
+                    // {
+                    //     // Dump half of energy and propogate further - once the
+                    //     // optics is its own function we shoule work out what
+                    //     // pi-theta returns for the absorptivity and pass this
+                    //     // here instead of 0.5
+                    //     deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];//yDimI[myCellID];
+                    //     curRay.power_ *= 0.5;
+                    // }
+                    // else
+                    // {
                         deposition_[myCellID] += absorptivity*curRay.power_/VI[myCellID];
                         curRay.power_ *= (1.0 - absorptivity);
                         curRay.direction_ -=
@@ -1046,25 +1085,44 @@ void laserHeatSource::updateDeposition
                                     )
                                 )*nFilteredI[myCellID]
                             );
-                    }
+                    // }
+
+                        }
                 }
-                else 
-                {
-                    if
+                else if
                     (
                         alphaFilteredI[myCellID] > dep_cutoff
                      && mag(nFilteredI[myCellID]) < 0.5
                      && curRay.power_ > SMALL
                     )
                     {
-                        // Deposit half the energy and send it back the way it came
-                        Info<< "Within the bulk" << endl;
+                    
+                    
+                            // Ray is in the bulk - deposit energy and reflect back
+        if (debug)
+        {
+            Info<< "Within the bulk at cell " << myCellID 
+                << ", alpha = " << alphaFilteredI[myCellID]
+                << ", |n| = " << mag(nFilteredI[myCellID])
+                << ", power = " << curRay.power_ << endl;
+        }
+        
 
                         deposition_[myCellID] += 0.5*curRay.power_/VI[myCellID];;
                         curRay.direction_ = -curRay.direction_;
                         curRay.power_ *= 0.5;
+                        curRay.path_.append(curRay.position_);
+                        // break;
                     }
-                }
+                    else if
+    (
+        alphaFilteredI[myCellID] < dep_cutoff  // In gas/outside material
+     && curRay.power_ > rayPowerAbsTol
+    )
+    {
+    
+    }
+                
 
                 // Update the ray's path
                 curRay.path_.append(curRay.position_);
@@ -1090,6 +1148,8 @@ void laserHeatSource::updateDeposition
             }
         }
     }
+
+    deposition_.correctBoundaryConditions();
 
      const scalar TotalQ = fvc::domainIntegrate(deposition_).value();
      Info<< "Total Q deposited this timestep: " << TotalQ <<endl;

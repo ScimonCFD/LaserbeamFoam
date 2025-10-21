@@ -121,18 +121,18 @@ dsigmadT
 
 boils
 (
-(metal1vapour metal1) 4101.0
-(metal2vapour metal2) 4202.0
-(metal3vapour metal3) 3010.0
-(metal4vapour metal4) 3004.0
+(metal1vapour metal1) 2900.0
+(metal2vapour metal2) 3000.0
+(metal3vapour metal3) 3100.0
+(metal4vapour metal4) 3200.0
 );
 
 LatentHeatGas
 (
-(metal1vapour metal1) 1.0e1
-(metal2vapour metal2) 1.0e1
-(metal3vapour metal3) 1.0e1
-(metal4vapour metal4) 1.0e1
+(metal1vapour metal1) 1.0e6
+(metal2vapour metal2) 1.0e6
+(metal3vapour metal3) 1.0e6
+(metal4vapour metal4) 1.0e6
 );
 
 interfaceCompression
@@ -187,9 +187,9 @@ interfaceDiffusion
 	(metal1vapour metal1)	0.0
 	(metal1 metal2)	1e-9
 	(metal2vapour metal1)	0.0
-	(metal1 metal3)	1e-6
+	(metal1 metal3)	1e-9
 	(metal3vapour metal1)	0.0
-	(metal1 metal4)	1e-6
+	(metal1 metal4)	1e-9
 	(metal4vapour metal1)	0.0
 	(air metal1)	0.0
 	

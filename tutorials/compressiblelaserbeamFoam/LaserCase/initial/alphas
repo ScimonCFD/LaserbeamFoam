@@ -15,44 +15,40 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 0 0 1 0 0 0];
+dimensions      [0 0 0 0 0 0 0];
 
-internalField   uniform 3000;
+internalField   uniform 0.0;
 
 boundaryField
 {
     top
     {
-        type            fixedValue;
-        value           uniform 1500;
+type            zeroGradient;
     }
     
     bottom
     {
-        type            fixedValue;
-        value           uniform 1500;
+type            zeroGradient;
     }
     
     right
     {
-        type            fixedValue;
-        value           uniform 1500;
+type            zeroGradient;
     }
 
     left
     {
-        type            fixedValue;
-        value           uniform 1500;
+type            zeroGradient;
     }
     
     front
     {
-       type            zeroGradient;
+type            zeroGradient;
     }
     
     back
     {
-       type            zeroGradient;
+type            zeroGradient;
     }
     
 }

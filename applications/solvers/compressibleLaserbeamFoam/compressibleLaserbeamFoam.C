@@ -158,16 +158,14 @@ int main(int argc, char *argv[])
 
             mass_dot.correctBoundaryConditions();
 
-            solve(fvm::ddt(rho) + fvc::div(mixture.rhoPhi()));
-
-            // rho=mixture.rho();
+            rho=mixture.rho();
 
             #include "update.H"
 
             // Update the laser deposition field
             laser.updateDeposition
             (
-                condensate, n_filtered, electrical_resistivity
+                condensateFiltered, n_filtered, electrical_resistivity
             );
 
 

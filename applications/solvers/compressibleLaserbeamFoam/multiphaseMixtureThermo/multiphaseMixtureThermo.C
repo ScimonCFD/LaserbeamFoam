@@ -1229,13 +1229,8 @@ Foam::tmp<Foam::volScalarField> Foam::multiphaseMixtureThermo::solveAlphas
     //int fluiditer = 0;
     for (phaseModel& alpha : phases_)
     {
-        std::string str2 ("vapour");
-
-        std::string phasename(alpha.name());
-
-        const unsigned long res = phasename.find(str2);
-
-        if (res != string::npos || alpha.name()=="air")
+        
+        if (alpha.isGaseous())
         {
             condensate -= alpha;
         }
@@ -1743,6 +1738,73 @@ Info<<"Liquid-Vapour State Transition: (Liquid,Vapour): ("<<alpha.name()<<","<<a
         << ' ' << min(sumAlpha).value()
         << ' ' << max(sumAlpha).value()
         << endl;
+
+
+
+
+
+
+
+
+
+
+    // Calculate and print total mass
+    Info << "Phase pair (liquid + vapor) masses in domain:" << endl;
+    
+    HashTable<bool> processedPhases;
+    
+    for (const phaseModel& phase : phases_)
+    {
+        if (processedPhases.found(phase.name())) continue;
+        
+        word vaporName = phase.name() + "vapour";
+        bool hasVaporPair = false;
+        scalar liquidMass = 0.0;
+        scalar vaporMass = 0.0;
+        
+        volScalarField phaseMassLiq = phase * phase.thermo().rho();
+        liquidMass = gSum(phaseMassLiq.primitiveField() * mesh_.V().field());
+        
+        for (const phaseModel& phase2 : phases_)
+        {
+            if (phase2.name() == vaporName)
+            {
+                hasVaporPair = true;
+                volScalarField phaseMassVap = phase2 * phase2.thermo().rho();
+                vaporMass = gSum(phaseMassVap.primitiveField() * mesh_.V().field());
+                processedPhases.insert(phase2.name(), true);
+                break;
+            }
+        }
+        
+        if (hasVaporPair)
+        {
+            scalar totalPairMass = liquidMass + vaporMass;
+            Info << "    " << phase.name() << " + " << vaporName << ": " 
+                 << totalPairMass << " kg (liquid: " << liquidMass 
+                 << " kg, vapor: " << vaporMass << " kg)" << endl;
+            processedPhases.insert(phase.name(), true);
+        }
+        else if (phase.name() != "air" && phase.name().find("vapour") == string::npos)
+        {
+            Info << "    " << phase.name() << " (no vapor): " << liquidMass << " kg" << endl;
+            processedPhases.insert(phase.name(), true);
+        }
+        else if (phase.name() == "air")
+        {
+            Info << "    " << phase.name() << ": " << liquidMass << " kg" << endl;
+            processedPhases.insert(phase.name(), true);
+        }
+    }
+
+
+
+
+
+
+
+
+
 
     calcAlphas();
 
