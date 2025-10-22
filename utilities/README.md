@@ -91,6 +91,29 @@ The dashed red line indicates the mean value across all analysed cross-sections.
 
 This process enables rapid, reproducible quantification of melt pool geometry directly from *laserbeamFoam* simulation results.
 
+## Example Cross-Sections
+
+To illustrate the output of the tool, the figures below show two representative **cross-sections of the melt pool** obtained from the included LPBF example case.
+
+The melt pool geometry is visualised at two y-locations:
+
+- **(a)** *y = 5.25 × 10⁻⁵ m* → **Porosity = 25.0 %**  
+- **(b)** *y = 9.25 × 10⁻⁵ m* → **Porosity = 18.6 %**
+
+<p align="center">
+  <img src="docs/CSAtY5dot25m.png" alt="Cross-section at y = 5.25e-5 m (porosity 25%)" width="420">
+  <img src="docs/CSAtY9dot25m.png" alt="Cross-section at y = 9.25e-5 m (porosity 18.6%)" width="420">
+</p>
+
+**Figure 3.** Example cross-sections extracted from the melt pool at different y-locations.  
+These images highlight how the local melt pool morphology and porosity can vary along the scan track.  
+The porosity values shown were computed automatically by this post-processing utility.
+
+> The images can be placed in the `docs/` directory (e.g. `docs/CrossSection_y5.25e-5.png` and `docs/CrossSection_y9.25e-5.png`),  
+> or in any other folder — just update the paths above accordingly.
+
+
+
 ## Example Case Included in This Folder
 
 Although this folder is primarily intended to contain only the Python post-processing scripts,  
