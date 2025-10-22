@@ -49,7 +49,7 @@ It proceeds through the following stages:
 ## Continuity Check — Illustration
 
 <p align="center">
-  <img src="docs/continuity_slice.png" alt="Continuity check: 2D slice of the melt track showing a pore but a continuous track along the scanning direction" width="420">
+  <img src="docs/ContinuitySlice.png" alt="Continuity check: 2D slice of the melt track showing a pore but a continuous track along the scanning direction" width="420">
 </p>
 
 **Figure 1.** Example mid-plane slice used for the continuity check.  
