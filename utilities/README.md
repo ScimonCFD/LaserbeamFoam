@@ -22,7 +22,7 @@ The tool is designed for batch use and supports reproducible analysis across mul
 ### Software
 - **OpenFOAM v2412** (or compatible), with the environment initialised.
 - **ParaView ≥ 5.7**, with `pvpython` available on your `PATH`.
-- **Conda** (or Mamba) to create the Python environment from the supplied YAML.
+- **Conda** to create the Python environment from the supplied YAML.
 
 ### Python libraries
 All Python dependencies are provided in the environment file (e.g. `environment.yml`).  
