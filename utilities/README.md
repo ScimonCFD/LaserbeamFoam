@@ -136,5 +136,7 @@ This post-processing utility was developed as part of a collaborative research e
 
 The authors gratefully acknowledge the support of both institutions and the open-source communities of **OpenFOAM** and **ParaView**, whose tools made this workflow possible.
 
-*Note:* This post-processing utility was developed as part of a larger research effort focused on automated LPBF simulation and analysis workflows.  
+## Note: ##  
+
+This post-processing utility was developed as part of a larger research effort focused on automated LPBF simulation and analysis workflows.  
 It may later be integrated into the broader **SimToPC** framework (Rodriguez et al., in preparation).
