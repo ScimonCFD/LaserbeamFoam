@@ -743,19 +743,20 @@ volScalarField meltHistory
     dimensionedScalar("meltHistory", dimensionSet(0, 0, 0, -0, 0), 0.0)
 );
 
-// This variable is 1 if (alpha.metal >= 0.5 and epsilon1 >=0.5), 0 otherwise
-volScalarField condition
+// This variable is 1 if (alpha.metal >= 0.5 and epsilon1 >=0.5), 0 otherwise.
+// These are the cells that are liquid and metallic at the current time
+volScalarField liquidMetalCells
 (
     IOobject
     (
-        "condition",
+        "liquidMetalCells",
         runTime.timeName(),
         mesh,
         IOobject::NO_READ,
         IOobject::AUTO_WRITE
     ),
     mesh,
-    dimensionedScalar("condition", dimensionSet(0, 0, 0, -0, 0), 0.0)
+    dimensionedScalar("liquidMetalCells", dimensionSet(0, 0, 0, -0, 0), 0.0)
 );
 
 

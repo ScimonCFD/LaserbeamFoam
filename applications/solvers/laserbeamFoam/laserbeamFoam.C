@@ -191,8 +191,8 @@ int main(int argc, char *argv[])
         // Update the melt history
         const volScalarField& alphaMetal = 
             mesh.lookupObject<volScalarField>("alpha.metal");
-        condition = pos(alphaMetal - 0.5) * pos(epsilon1 - 0.5);
-        meltHistory += condition;
+        liquidMetalCells = pos(alphaMetal - 0.5) * pos(epsilon1 - 0.5);
+        meltHistory += liquidMetalCells;
 
         runTime.write();
 
