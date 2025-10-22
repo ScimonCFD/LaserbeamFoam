@@ -42,14 +42,14 @@ def plotResults(CSV_CROSS_SECTIONS = "cross_sections_statistics.csv"):
     def generate_figure(x, y_values, xlabel, ylabel, title, name_png_file):
         plt.figure()
         plt.plot(x, y_values, marker="o")  
-        plt.axhline(y=y_values.mean(), color="red", linestyle="--", label="Mean")
-        plt.xlabel(xlabel)
+        plt.axhline(y=y_values.mean(), color="red", linestyle="--", 
+                    label="Mean")
+        plt.xlabel(xlabel + " (m)")
         plt.ylabel(ylabel)
         plt.title(title)
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
-        # plt.show()
         plt.savefig("./" + name_png_file + ".png")
     
     df = pd.read_csv(CSV_CROSS_SECTIONS)
@@ -202,6 +202,7 @@ def calculate_statistics_rows_meltpool(CSV_3D, meltpool_is_continuous):
     
     # Iterate over all the y-sections
     while (iy <= y_max):
+                
         if(iy not in void_iy_levels):
             mask = (iy == np.round(y, 8))
             cells_at_iy = df[mask]
