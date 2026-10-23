@@ -95,9 +95,73 @@
     const scalar RValue = R.value();
     const scalar SBValue = SB.value();
 
+    // apparentCapacity: in the cells of the mushy range the liquid fraction
+    // is a function of T, epsilon1 = (T - TSolidus)/(TLiquidus - TSolidus), so
+    // its latent heat is taken implicitly, rho*L/(TLiquidus - TSolidus)
+    // *(T - T_k)/deltaT with T_k the temperature of the previous correction (a
+    // Newton linearisation), and the correction loop converges in a few
+    // corrections. The converged solution is the same as with sourceBased
+    const bool newtonLatentHeat = (latentHeatMethod == "apparentCapacity");
+
+    volScalarField latentCoeff
+    (
+        IOobject
+        (
+            "latentCoeff",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedScalar
+        (
+            rho.dimensions()*LatentHeat.dimensions()/dimTemperature/dimTime,
+            Zero
+        )
+    );
+
+    scalarField TPrev;
+
     do
     {
         epsilon1.storePrevIter();
+
+        if (newtonLatentHeat)
+        {
+            // The cells in the mushy range, from the liquid fraction and the
+            // temperature of the previous correction (a cell that leaves the
+            // range is treated as solid or liquid in the next correction)
+            scalarField& latentCoeffI = latentCoeff.primitiveFieldRef();
+            const scalarField& TI = T;
+            const scalarField& epsilon1I = epsilon1;
+            const scalarField& TSolidusI = TSolidus;
+            const scalarField& TLiquidusI = TLiquidus;
+            const scalarField& rhoI = rho;
+            const scalarField& LatentHeatI = LatentHeat;
+            const scalar rDeltaT = 1.0/runTime.deltaTValue();
+
+            forAll(latentCoeffI, celli)
+            {
+                const scalar range = TLiquidusI[celli] - TSolidusI[celli];
+                const scalar eps = epsilon1I[celli];
+
+                const bool mushy =
+                    range > SMALL
+                 && LatentHeatI[celli] > SMALL
+                 && (
+                        (eps > 0 && eps < 1)
+                     || (eps <= 0 && TI[celli] > TSolidusI[celli])
+                     || (eps >= 1 && TI[celli] < TLiquidusI[celli])
+                    );
+
+                latentCoeffI[celli] =
+                    mushy ? rhoI[celli]*LatentHeatI[celli]/range*rDeltaT : 0;
+            }
+
+            TPrev = T.primitiveField();
+        }
+
         TRHS =
             LatentHeat*((fvc::ddt(rho, epsilon1) + fvc::div(rhoPhi, epsilon1)));
 
@@ -172,6 +236,14 @@
 
         TEqn -= fvm::Sp(Qrad_inpl*gradAlphaDamper, T);
 
+        if (newtonLatentHeat)
+        {
+            // rho*L/(TLiquidus - TSolidus)*(T - T_k)/deltaT: implicit in T,
+            // explicit in the temperature of the previous correction
+            TEqn += fvm::Sp(latentCoeff, T);
+            TEqn -= latentCoeff*T;
+        }
+
         TEqn -=
         (
             laser.deposition()
@@ -188,19 +260,49 @@
 
         // T.relax();
 
-        Tcorr = (TLiquidus - TSolidus)*epsilon1 + TSolidus;
-        Tcorr.correctBoundaryConditions();
+        if (newtonLatentHeat)
+        {
+            // Liquid fraction from the new temperature: the Newton update in
+            // the cells of the mushy range, the equilibrium value elsewhere
+            scalarField& epsilon1I = epsilon1.primitiveFieldRef();
+            const scalarField& latentCoeffI = latentCoeff;
+            const scalarField& TI = T;
+            const scalarField& TSolidusI = TSolidus;
+            const scalarField& TLiquidusI = TLiquidus;
 
-        epsilon1 =
-            max
-            (
-                min
+            forAll(epsilon1I, celli)
+            {
+                const scalar range = TLiquidusI[celli] - TSolidusI[celli];
+
+                if (range <= SMALL)
+                {
+                    continue;
+                }
+
+                const scalar eps =
+                    latentCoeffI[celli] > 0
+                  ? epsilon1I[celli] + (TI[celli] - TPrev[celli])/range
+                  : (TI[celli] - TSolidusI[celli])/range;
+
+                epsilon1I[celli] = max(min(eps, scalar(1)), scalar(0));
+            }
+        }
+        else
+        {
+            Tcorr = (TLiquidus - TSolidus)*epsilon1 + TSolidus;
+            Tcorr.correctBoundaryConditions();
+
+            epsilon1 =
+                max
                 (
-                    epsilon1 + (epsilonRel*cp/LatentHeat)*(T - Tcorr),
-                    scalar(1)
-                ),
-                scalar(0)
-            );
+                    min
+                    (
+                        epsilon1 + (epsilonRel*cp/LatentHeat)*(T - Tcorr),
+                        scalar(1)
+                    ),
+                    scalar(0)
+                );
+        }
 
         epsilon1.correctBoundaryConditions();
 
