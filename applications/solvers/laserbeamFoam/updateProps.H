@@ -43,8 +43,6 @@
     #include "updateKappaCp.H"
 
     const vectorField& CI = mesh.C();
-    metalaverage = fvc::average(alpha1);
-    metalaverage.correctBoundaryConditions();  // ADDED
 
     alpha_filtered = volScalarField("alpha_filtered", alpha1);
     alpha_filtered.correctBoundaryConditions();
@@ -99,8 +97,6 @@
     }
 
     alpha_filtered.correctBoundaryConditions();
-
-    alpha_smoothed = fvc::average(alpha1);
 
     // LatentHeat is specific (per unit mass), so it is mixed with the mass
     // fraction so that rho*LatentHeat is volume-additive
