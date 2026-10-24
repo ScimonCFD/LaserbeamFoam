@@ -97,10 +97,12 @@
 
     // apparentCapacity: in the cells of the mushy range the liquid fraction
     // is a function of T, epsilon1 = (T - TSolidus)/(TLiquidus - TSolidus), so
-    // its latent heat is taken implicitly, rho*L/(TLiquidus - TSolidus)
-    // *(T - T_k)/deltaT with T_k the temperature of the previous correction (a
-    // Newton linearisation), and the correction loop converges in a few
-    // corrections. The converged solution is the same as with sourceBased
+    // its latent heat is linearised about the point of that line for the
+    // current liquid fraction, Tcorr = TSolidus + (TLiquidus - TSolidus)
+    // *epsilon1, and taken implicitly, rho*L/(TLiquidus - TSolidus)
+    // *(T - Tcorr)/deltaT (a Newton linearisation), and the correction loop
+    // converges in a few corrections. The converged solution is the same as
+    // with sourceBased
     const bool newtonLatentHeat = (latentHeatMethod == "apparentCapacity");
 
     volScalarField latentCoeff
@@ -121,7 +123,6 @@
         )
     );
 
-    scalarField TPrev;
 
     do
     {
@@ -159,7 +160,8 @@
                     mushy ? rhoI[celli]*LatentHeatI[celli]/range*rDeltaT : 0;
             }
 
-            TPrev = T.primitiveField();
+            Tcorr = (TLiquidus - TSolidus)*epsilon1 + TSolidus;
+            Tcorr.correctBoundaryConditions();
         }
 
         TRHS =
@@ -238,10 +240,9 @@
 
         if (newtonLatentHeat)
         {
-            // rho*L/(TLiquidus - TSolidus)*(T - T_k)/deltaT: implicit in T,
-            // explicit in the temperature of the previous correction
+            // rho*L/(TLiquidus - TSolidus)*(T - Tcorr)/deltaT: implicit in T
             TEqn += fvm::Sp(latentCoeff, T);
-            TEqn -= latentCoeff*T;
+            TEqn -= latentCoeff*Tcorr;
         }
 
         TEqn -=
@@ -266,6 +267,7 @@
             // the cells of the mushy range, the equilibrium value elsewhere
             scalarField& epsilon1I = epsilon1.primitiveFieldRef();
             const scalarField& latentCoeffI = latentCoeff;
+            const scalarField& TcorrI = Tcorr;
             const scalarField& TI = T;
             const scalarField& TSolidusI = TSolidus;
             const scalarField& TLiquidusI = TLiquidus;
@@ -281,7 +283,7 @@
 
                 const scalar eps =
                     latentCoeffI[celli] > 0
-                  ? epsilon1I[celli] + (TI[celli] - TPrev[celli])/range
+                  ? epsilon1I[celli] + (TI[celli] - TcorrI[celli])/range
                   : (TI[celli] - TSolidusI[celli])/range;
 
                 epsilon1I[celli] = max(min(eps, scalar(1)), scalar(0));
